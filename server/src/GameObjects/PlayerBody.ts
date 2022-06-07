@@ -194,8 +194,8 @@ export class Player {
       );
 
       this.state.sections[i].setTo(
-        this.sections[i].position.x,
-        this.sections[i].position.y
+        Number(this.sections[i].position.x.toFixed(2)),
+        Number(this.sections[i].position.y.toFixed(2))
       );
 
       //hide sections if they are at the same position
@@ -248,9 +248,9 @@ export class Player {
   }
 
   updateState() {
-    this.state.x = this.head.position.x;
-    this.state.y = this.head.position.y;
-    this.state.angle = this.head.angle;
+    this.state.x = Number(this.head.position.x.toFixed(2));
+    this.state.y = Number(this.head.position.y.toFixed(2));
+    this.state.angle = Number(this.head.angle.toFixed(2));
   }
 
   rotateTowards(x: string, y: string) {

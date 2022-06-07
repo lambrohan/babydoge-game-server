@@ -9,7 +9,9 @@ import Matter, {
   World,
   Bodies,
   IEventCollision,
+  IPair,
 } from 'matter-js';
+import { nanoid } from 'nanoid';
 import { Player } from '../GameObjects/PlayerBody';
 import {
   BODY_LABELS,
@@ -19,10 +21,14 @@ import {
   GAME_META,
   getIDFromLabel,
   identifyGameObject,
+  IsFoodBody,
+  IsSnakeBody,
+  IsSnakeHead,
   labelWithID,
   MAX_CLIENTS_PER_ROOM,
 } from '../utils';
 import { generateDummyFood } from '../utils/dummy';
+import { Food } from './schema/Food';
 import { MyRoomState } from './schema/MyRoomState';
 const TICK_RATE = 20; // 20 ticks per second
 
@@ -86,38 +92,11 @@ export class MyRoom extends Room<MyRoomState> {
     console.log('room created');
 
     const roomState = new MyRoomState();
-    roomState.foodItems = generateDummyFood();
-    roomState.foodItems.forEach((f) => {
-      const fBody = Bodies.circle(f.x, f.y, CONSTANTS.FOOD_RADIUS, {
-        position: {
-          x: f.x,
-          y: f.y,
-        },
-        isSensor: true,
-        angularSpeed: 0,
-        velocity: { x: 0, y: 0 },
-        speed: 0,
-        mass: 0,
-        inertia: 0,
-        friction: 0,
-        frictionAir: 0,
-        label: labelWithID(BODY_LABELS.FOOD, f.id),
-        force: {
-          x: 0,
-          y: 0,
-        },
-        collisionFilter: {
-          group: COLLISION_GROUPS.FOOD,
-          category: COLLISION_CATEGORIES.SNAKE_HEAD,
-        },
-      });
-
-      Composite.add(this.engine.world, fBody);
-
-      this.foodBodies.set(f.id, fBody);
-    });
-
     this.setState(roomState);
+
+    generateDummyFood().forEach((f) => {
+      this.addFoodToWorld(f);
+    });
 
     this.setSimulationInterval((delta) => this.update(delta));
 
@@ -131,11 +110,11 @@ export class MyRoom extends Room<MyRoomState> {
   handleCollision(event: IEventCollision<Matter.Engine>) {
     const [pair] = event.pairs;
     if (
-      identifyGameObject(pair.bodyA.label) === BODY_LABELS.FOOD &&
-      identifyGameObject(pair.bodyB.label) === BODY_LABELS.SNAKE_HEAD
+      (IsFoodBody(pair.bodyA) && IsSnakeHead(pair.bodyB)) ||
+      (IsFoodBody(pair.bodyB) && IsSnakeHead(pair.bodyA))
     ) {
       // player food collision
-      this.initFoodEatingSeq(pair.bodyA, pair.bodyB);
+      this.initFoodEatingSeq(pair);
     }
 
     if (
@@ -149,6 +128,14 @@ export class MyRoom extends Room<MyRoomState> {
         `${GAME_META.height / 2}`
       );
     }
+
+    // player head to body collision
+    if (
+      (IsSnakeBody(pair.bodyA) && IsSnakeHead(pair.bodyB)) ||
+      (IsSnakeBody(pair.bodyB) && IsSnakeHead(pair.bodyA))
+    ) {
+      this.handleP2PCollision(pair);
+    }
   }
 
   onJoin(client: Client, options: any) {
@@ -161,7 +148,7 @@ export class MyRoom extends Room<MyRoomState> {
 
   onLeave(client: Client, consented: boolean) {
     console.log(client.sessionId, 'left!');
-
+    if (!this.players.has(client.sessionId)) return;
     this.players.get(client.sessionId).destroy();
 
     this.players.delete(client.sessionId);
@@ -185,7 +172,9 @@ export class MyRoom extends Room<MyRoomState> {
     this.players.get(client.sessionId)?.rotateTowards(x, y);
   }
 
-  initFoodEatingSeq(foodBody: Body, snakeBody: Body) {
+  initFoodEatingSeq(pair: IPair) {
+    const foodBody = IsFoodBody(pair.bodyA) ? pair.bodyA : pair.bodyB;
+    const snakeBody = IsSnakeHead(pair.bodyA) ? pair.bodyA : pair.bodyB;
     // nom nom
     /**
      * 1. Add the size player length
@@ -201,5 +190,59 @@ export class MyRoom extends Room<MyRoomState> {
     World.remove(this.engine.world, foodBody);
   }
 
-  initRerouteSeq(player: Body) {}
+  handleP2PCollision(pair: IPair) {
+    const snakeHead = IsSnakeHead(pair.bodyA) ? pair.bodyA : pair.bodyB;
+    const snakeBody = IsSnakeBody(pair.bodyA) ? pair.bodyA : pair.bodyB;
+    // destory player with snake haead
+    const headPlayerId = getIDFromLabel(snakeHead.label);
+    const bodyPlayerId = getIDFromLabel(snakeBody.label);
+    if (headPlayerId === bodyPlayerId) return;
+
+    // generate food items to be dropped
+    const player = this.players.get(headPlayerId);
+    for (let i = 0; i < player.sections.length; i++) {
+      const section = player.sections[i];
+      const fd = new Food();
+      fd.id = nanoid(4);
+      fd.x = section.position.x;
+      fd.y = section.position.y;
+      // TODO fix sizes later
+      fd.size = 1;
+      this.addFoodToWorld(fd);
+    }
+
+    this.players.get(headPlayerId).destroy();
+    this.state.players.delete(headPlayerId);
+
+    this.players.delete(headPlayerId);
+  }
+
+  addFoodToWorld(f: Food) {
+    const fBody = Bodies.circle(f.x, f.y, CONSTANTS.FOOD_RADIUS, {
+      position: {
+        x: f.x,
+        y: f.y,
+      },
+      isSensor: true,
+      angularSpeed: 0,
+      velocity: { x: 0, y: 0 },
+      speed: 0,
+      mass: 0,
+      inertia: 0,
+      friction: 0,
+      frictionAir: 0,
+      label: labelWithID(BODY_LABELS.FOOD, f.id),
+      force: {
+        x: 0,
+        y: 0,
+      },
+      collisionFilter: {
+        group: COLLISION_GROUPS.FOOD,
+        category: COLLISION_CATEGORIES.SNAKE_HEAD,
+      },
+    });
+    this.state.foodItems.set(f.id, f);
+    Composite.add(this.engine.world, fBody);
+    this.foodBodies.set(f.id, fBody);
+  }
 }

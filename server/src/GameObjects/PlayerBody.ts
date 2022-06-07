@@ -1,3 +1,4 @@
+import { ArraySchema } from '@colyseus/schema';
 import Matter, {
   Bodies,
   Body,
@@ -144,7 +145,7 @@ export class Player {
     //initialize a new section
     const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_BODY_RAD, {
       isSensor: true,
-      label: BODY_LABELS.SNAKE_BODY,
+      label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
       collisionFilter: {
         group: COLLISION_GROUPS.FOOD,
         category: COLLISION_CATEGORIES.SNAKE_HEAD,
@@ -155,7 +156,7 @@ export class Player {
 
     this.state.snakeLength++;
     this.sections.push(sec);
-    this.state.sections.push(new SnakeSection(x, y));
+    this.state.sections.push(new SnakeSection(x, y, this.sections.length - 1));
 
     return sec;
   }
@@ -271,12 +272,20 @@ export class Player {
 
   eatFood(foodState: Food) {
     this.addSectionsAfterLast(foodState.size);
+    this.state.score += foodState.size;
   }
 
   destroy() {
     Composite.remove(this.engine.world, this.head);
+    // while (this.state.sections.length > 0) {
+    //   this.state.sections.pop();
+    //   Composite.remove(this.engine.world, this.sections.pop());
+    // }
+
     this.sections.forEach((sec) => {
       Composite.remove(this.engine.world, sec);
     });
+
+    this.state.sections = new ArraySchema();
   }
 }

@@ -104,7 +104,23 @@ export function identifyGameObject(label: string): BODY_LABELS {
     return BODY_LABELS.BOUNDARY;
   }
 
+  if (/snake_body/gm.test(label)) {
+    return BODY_LABELS.SNAKE_BODY;
+  }
+
   return undefined;
+}
+
+export function IsSnakeHead(body: Matter.Body) {
+  return identifyGameObject(body.label) === BODY_LABELS.SNAKE_HEAD;
+}
+
+export function IsSnakeBody(body: Matter.Body) {
+  return identifyGameObject(body.label) === BODY_LABELS.SNAKE_BODY;
+}
+
+export function IsFoodBody(body: Matter.Body) {
+  return identifyGameObject(body.label) === BODY_LABELS.FOOD;
 }
 
 export function MONGOOSE_CONFIG(): string {

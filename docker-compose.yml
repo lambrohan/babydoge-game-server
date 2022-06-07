@@ -1,0 +1,40 @@
+version: '3.6'
+services:
+  mongodb:
+    image: mongo:5.0
+    ports:
+      - 27017:27017
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes:
+      - ./mongo-data:/bitnami/mongodb
+
+  redis:
+    image: bitnami/redis:7.0
+    container_name: redis
+    restart: always
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-data:/data
+  
+  game-server:
+    restart: always
+    build:
+      context: ./server
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      MONGO_USER: ${MONGO_USER}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
+      REDIS_PORT: ${REDIS_PORT}
+    ports:
+      - 2567:2567
+    depends_on:
+      - redis
+      - mongodb
+

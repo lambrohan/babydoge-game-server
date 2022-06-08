@@ -94,16 +94,9 @@ export class MyRoom extends Room<MyRoomState> {
     const roomState = new MyRoomState();
     this.setState(roomState);
 
-    // generateDummyFood().forEach((f) => {
-    //   this.addFoodToWorld(f);
-    // });
-
-    const fd = new Food();
-    fd.x = 600;
-    fd.y = 600;
-    fd.size = 1;
-    fd.id = nanoid(2);
-    this.addFoodToWorld(fd);
+    generateDummyFood().forEach((f) => {
+      this.addFoodToWorld(f);
+    });
 
     this.setSimulationInterval((delta) => this.update(delta));
 

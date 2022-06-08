@@ -36,5 +36,4 @@ services:
       - 2567:2567
     depends_on:
       - redis
-      - mongodb
 

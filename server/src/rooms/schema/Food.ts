@@ -5,13 +5,13 @@ export class Food extends Schema {
   @type('string')
   id: string;
 
-  @type('int16')
+  @type('float32')
   x: number;
 
-  @type('int16')
+  @type('float32')
   y: number;
 
-  @type('number')
+  @type('int16')
   size: number;
 
   @type('boolean')

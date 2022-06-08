@@ -18,13 +18,16 @@ export default Arena({
       port: (process.env.REDIS_PORT as any) || 6379,
       password: process.env.REDIS_PASSWORD || '',
     }),
-    driver: new MongooseDriver(MONGOOSE_CONFIG()),
+    // driver: new MongooseDriver(MONGOOSE_CONFIG()),  uncomment this if you want to use mongodb instead of redis
   },
   initializeGameServer: (gameServer) => {
     /**
      * Define your room handlers:
      */
     gameServer.define('my_room', MyRoom);
+    if (process.env.NODE_ENV !== 'production') {
+      gameServer.simulateLatency(200);
+    }
   },
 
   initializeExpress: (app) => {

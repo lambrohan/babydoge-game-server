@@ -28,23 +28,21 @@ export class PlayerState extends Schema {
     this.sections = new ArraySchema();
     this.snakeLength = snakeLength;
   }
-  @type('string')
   publicAddress: string;
 
   @type('string')
   sessionId: string;
 
-  // TODO -  change number types to precise ints later
-  @type('number')
+  @type('int16')
   x: number;
 
-  @type('number')
+  @type('int16')
   y: number;
 
-  @type('number')
+  @type('int16')
   score: number;
 
-  @type('float32')
+  @type('int16')
   angle: number = 0;
 
   @type('int8')

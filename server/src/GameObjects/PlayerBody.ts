@@ -156,7 +156,7 @@ export class Player {
 
     this.state.snakeLength++;
     this.sections.push(sec);
-    this.state.sections.push(new SnakeSection(x, y, this.sections.length - 1));
+    this.state.sections.push(new SnakeSection(x, y));
 
     return sec;
   }
@@ -277,10 +277,6 @@ export class Player {
 
   destroy() {
     Composite.remove(this.engine.world, this.head);
-    // while (this.state.sections.length > 0) {
-    //   this.state.sections.pop();
-    //   Composite.remove(this.engine.world, this.sections.pop());
-    // }
 
     this.sections.forEach((sec) => {
       Composite.remove(this.engine.world, sec);

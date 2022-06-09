@@ -1,17 +1,17 @@
 import { Schema, type } from '@colyseus/schema';
 
 export class SnakeSection extends Schema {
-  constructor(x: number, y: number) {
+  constructor(x: number = 0, y: number = 0) {
     super();
     this.x = x;
     this.y = y;
   }
 
-  @type('int16')
-  x: number;
+  @type('float32')
+  x: number = 0;
 
-  @type('int16')
-  y: number;
+  @type('float32')
+  y: number = 0;
 
   setTo(x: number, y: number) {
     this.x = x;

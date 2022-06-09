@@ -5,6 +5,7 @@ import Matter, {
   Composite,
   Composites,
   Engine,
+  Vector,
   World,
 } from 'matter-js';
 import { nanoid } from 'nanoid';
@@ -16,11 +17,13 @@ import {
   COLLISION_CATEGORIES,
   COLLISION_GROUPS,
   CONSTANTS,
+  degToRad,
   distanceFormula,
   GAME_META,
   getRandomArbitrary,
   INIT_WITH_LENGTH,
   labelWithID,
+  lerp,
   Point,
   velocityFromAngle,
 } from '../utils';
@@ -35,6 +38,7 @@ export class Player {
   preferredDistance = 17 * this.scale;
   sections: Array<Body>;
   queuedSections = 0;
+  inputQueue: any[] = [];
 
   constructor(engine: Engine, sessionId: string) {
     this.engine = engine;
@@ -59,7 +63,7 @@ export class Player {
       CONSTANTS.SNAKE_HEAD_RAD,
       {
         position: { x: this.state.x, y: this.state.y },
-        angle: -90,
+        angle: 0,
         angularSpeed: 0,
         velocity: { x: 0, y: 0 },
         speed: 0,
@@ -83,15 +87,11 @@ export class Player {
       }
     );
     this.lastHeadPosition = new Point(this.state.x, this.state.y);
-    Body.setVelocity(
-      this.head,
-      velocityFromAngle(this.head.angle, CONSTANTS.SNAKE_SPEED)
-    );
 
     Composite.add(this.engine.world, this.head);
 
     // add n sections behind player head
-    this.initSections(INIT_WITH_LENGTH);
+    this.initSections(2);
   }
 
   initSections(num: number) {
@@ -145,6 +145,20 @@ export class Player {
     //initialize a new section
     const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_BODY_RAD, {
       isSensor: true,
+      force: {
+        x: 0,
+        y: 0,
+      },
+      mass: 0,
+      inertia: 0,
+      friction: 0,
+      speed: 0,
+      angularSpeed: 0,
+      velocity: {
+        x: 0,
+        y: 0,
+      },
+
       label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
       collisionFilter: {
         group: COLLISION_GROUPS.FOOD,
@@ -153,8 +167,8 @@ export class Player {
     });
 
     Composite.add(this.engine.world, sec);
-
     this.state.snakeLength++;
+
     this.sections.push(sec);
     this.state.sections.push(new SnakeSection(x, y));
 
@@ -174,10 +188,16 @@ export class Player {
   }
 
   update() {
-    //remove the last element of an array that contains points which
-    //the head traveled through
-    //then move this point to the front of the array and change its value
-    //to be where the head is located
+    Body.setAngularVelocity(this.head, 0);
+    this.dequeueInputs();
+    const vel = velocityFromAngle(this.head.angle, CONSTANTS.SNAKE_SPEED);
+    Body.setPosition(
+      this.head,
+      Vector.create(this.head.position.x + vel.x, this.head.position.y + vel.y)
+    );
+
+    this.updateState();
+
     if (!this.head) return;
     let point = this.headPath.pop()!;
     point.setTo(this.head.position.x, this.head.position.y);
@@ -193,10 +213,7 @@ export class Player {
         Matter.Vector.create(this.headPath[index].x, this.headPath[index].y)
       );
 
-      this.state.sections[i].setTo(
-        Number(this.sections[i].position.x.toFixed(2)),
-        Number(this.sections[i].position.y.toFixed(2))
-      );
+      // this.updateSectionState(i)
 
       //hide sections if they are at the same position
       // if (lastIndex && index == lastIndex) {
@@ -243,8 +260,13 @@ export class Player {
       );
       this.onCycleComplete();
     }
+  }
 
-    this.updateState();
+  updateSectionState(i: number) {
+    this.state.sections[i].setTo(
+      Number(this.sections[i].position.x.toFixed(2)),
+      Number(this.sections[i].position.y.toFixed(2))
+    );
   }
 
   updateState() {
@@ -264,10 +286,17 @@ export class Player {
     const currentAngle = this.head.angle;
 
     Body.rotate(this.head, angle - currentAngle);
-    Body.setVelocity(
-      this.head,
-      velocityFromAngle(this.head.angle, CONSTANTS.SNAKE_SPEED)
-    );
+  }
+
+  dequeueInputs() {
+    let input: number;
+    while ((input = this.inputQueue.shift())) {
+      if (input === 1) {
+        Body.rotate(this.head, -4);
+      } else {
+        Body.rotate(this.head, 4);
+      }
+    }
   }
 
   eatFood(foodState: Food) {
@@ -282,6 +311,6 @@ export class Player {
       Composite.remove(this.engine.world, sec);
     });
 
-    this.state.sections = new ArraySchema();
+    // this.state.sections = new ArraySchema();
   }
 }

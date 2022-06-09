@@ -1,3 +1,4 @@
+import { number } from '@colyseus/schema/lib/encoding/decode';
 import Matter, { Vector } from 'matter-js';
 
 export const MAX_CLIENTS_PER_ROOM = 500;
@@ -132,4 +133,8 @@ export function MONGOOSE_CONFIG(): string {
   return (
     process.env.MONGO_URI || `mongodb://${username}:${password}@${host}:${port}`
   );
+}
+
+export function lerp(p0: number, p1: number, t: number) {
+  return (p1 - p0) * t + p0;
 }

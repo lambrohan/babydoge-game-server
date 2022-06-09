@@ -1,32 +1,32 @@
 import Arena from '@colyseus/arena';
 import { monitor } from '@colyseus/monitor';
 import { RedisPresence } from 'colyseus';
-import { MongooseDriver } from '@colyseus/mongoose-driver';
 
 /**
  * Import your Room files
  */
 import { MyRoom } from './rooms/MyRoom';
-import { MONGOOSE_CONFIG } from './utils';
-
+const isProd = process.env.NODE_ENV == 'production';
 export default Arena({
   getId: () => 'Your Colyseus App',
 
-  options: {
-    presence: new RedisPresence({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: (process.env.REDIS_PORT as any) || 6379,
-      password: process.env.REDIS_PASSWORD || '',
-    }),
-    // driver: new MongooseDriver(MONGOOSE_CONFIG()),  uncomment this if you want to use mongodb instead of redis
-  },
+  options: isProd
+    ? {
+        presence: new RedisPresence({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: (process.env.REDIS_PORT as any) || 6379,
+          password: process.env.REDIS_PASSWORD || '',
+        }),
+        // driver: new MongooseDriver(MONGOOSE_CONFIG()),  uncomment this if you want to use mongodb instead of redis
+      }
+    : {},
   initializeGameServer: (gameServer) => {
     /**
      * Define your room handlers:
      */
     gameServer.define('my_room', MyRoom);
-    if (process.env.NODE_ENV !== 'production') {
-      gameServer.simulateLatency(200);
+    if (isProd) {
+      // gameServer.simulateLatency(200);
     }
   },
 

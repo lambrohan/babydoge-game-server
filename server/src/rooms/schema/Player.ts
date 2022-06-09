@@ -36,16 +36,16 @@ export class PlayerState extends Schema {
   @type('int16')
   x: number;
 
-  @type('int16')
+  @type('float32')
   y: number;
 
-  @type('int16')
+  @type('number')
   score: number;
 
   @type('int16')
   angle: number = 0;
 
-  @type('int8')
+  @type('number')
   snakeLength: number = 0;
 
   @type([SnakeSection])

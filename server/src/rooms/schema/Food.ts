@@ -1,4 +1,5 @@
 import { Schema, type } from '@colyseus/schema';
+import { FoodAssetType } from '../../utils';
 
 export class Food extends Schema {
   @type('string')
@@ -11,5 +12,5 @@ export class Food extends Schema {
   y: number;
 
   @type('number')
-  size: number;
+  type: FoodAssetType;
 }

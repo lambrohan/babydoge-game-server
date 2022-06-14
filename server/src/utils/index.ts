@@ -69,11 +69,12 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_SPEED: 4,
-  SNAKE_HEAD_RAD: 20,
-  SNAKE_BODY_RAD: 20,
+  SNAKE_HEAD_RAD: 40 / 2,
   FOOD_RADIUS_MULTIPLIER: 1,
-  FOOD_RADIUS: 35,
+  FOOD_RADIUS: 16,
+  LERP: 0.08,
+  ROT_LERP: 0.2,
+  PREF_DISTANCE: 12,
 };
 export function distanceFormula(
   x1: number,
@@ -137,4 +138,17 @@ export function MONGOOSE_CONFIG(): string {
 
 export function lerp(p0: number, p1: number, t: number) {
   return (p1 - p0) * t + p0;
+}
+
+export enum FoodAssetType {
+  RED = 0,
+  ORANGE = 1,
+  BLUE = 2,
+  COIN = 4,
+}
+
+export enum SnakeSkin {
+  GREEN_WHITE_LINE = 0,
+  ELECTRIC_BLUE = 1,
+  PURPLE_WHITE_RING = 2,
 }

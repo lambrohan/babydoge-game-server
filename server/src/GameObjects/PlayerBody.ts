@@ -21,12 +21,11 @@ import {
   distanceFormula,
   GAME_META,
   getRandomArbitrary,
-  INIT_WITH_LENGTH,
   labelWithID,
-  lerp,
   Point,
-  velocityFromAngle,
+  SnakeSkin,
 } from '../utils';
+import { GameMath } from '../utils/math';
 
 export class Player {
   head: Body;
@@ -34,11 +33,16 @@ export class Player {
   engine: Engine;
   headPath: Array<Point>;
   lastHeadPosition: Point;
-  scale = 1.4;
-  preferredDistance = 17 * this.scale;
+  scale = 1;
+  preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
   sections: Array<Body>;
   queuedSections = 0;
   inputQueue: any[] = [];
+  SPEED = 2.5;
+  ROTATION_SPEED = 1 * Math.PI;
+  TOLERANCE = 0.02 * this.ROTATION_SPEED;
+  target = 0;
+  bodyComposite: Composite;
 
   constructor(engine: Engine, sessionId: string) {
     this.engine = engine;
@@ -47,16 +51,18 @@ export class Player {
     this.state = new PlayerState({
       publicAddress: nanoid(4),
       sessionId: sessionId,
-      x: getRandomArbitrary(100, 500),
-      y: getRandomArbitrary(100, 500),
-      score: 0,
+      x: getRandomArbitrary(0, GAME_META.width / 2),
+      y: getRandomArbitrary(0, GAME_META.height / 2),
       snakeLength: 0,
+      skin: 2,
     });
 
     this.init();
   }
 
   init() {
+    this.bodyComposite = Composite.create();
+    Composite.add(this.engine.world, this.bodyComposite);
     this.head = Bodies.circle(
       this.state.x,
       this.state.y,
@@ -64,19 +70,12 @@ export class Player {
       {
         position: { x: this.state.x, y: this.state.y },
         angle: 0,
-        angularSpeed: 0,
-        velocity: { x: 0, y: 0 },
-        speed: 0,
-        mass: 0,
-        inertia: 0,
+        velocity: { x: this.SPEED, y: 0 },
         isSensor: true,
+        mass: 0,
         friction: 0,
         frictionAir: 0,
         label: labelWithID(BODY_LABELS.SNAKE_HEAD, this.state.sessionId),
-        force: {
-          x: 0,
-          y: 0,
-        },
         collisionFilter: {
           group: COLLISION_GROUPS.SNAKE_HEAD,
           category:
@@ -143,7 +142,7 @@ export class Player {
 
   addSectionAtPosition(x: number, y: number) {
     //initialize a new section
-    const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_BODY_RAD, {
+    const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD, {
       isSensor: true,
       force: {
         x: 0,
@@ -166,7 +165,7 @@ export class Player {
       },
     });
 
-    Composite.add(this.engine.world, sec);
+    Composite.add(this.bodyComposite, sec);
     this.state.snakeLength++;
 
     this.sections.push(sec);
@@ -188,13 +187,21 @@ export class Player {
   }
 
   update() {
-    Body.setAngularVelocity(this.head, 0);
     this.dequeueInputs();
-    const vel = velocityFromAngle(this.head.angle, CONSTANTS.SNAKE_SPEED);
-    Body.setPosition(
-      this.head,
-      Vector.create(this.head.position.x + vel.x, this.head.position.y + vel.y)
+
+    const angle = GameMath.rotateTo(
+      degToRad(this.head.angle),
+      this.target,
+      0.08
     );
+
+    Body.setAngle(this.head, GameMath.radToDeg(angle));
+
+    const a = GameMath.velocityFromRotation(
+      degToRad(this.head.angle),
+      this.SPEED
+    );
+    Body.setVelocity(this.head, a);
 
     this.updateState();
 
@@ -291,26 +298,25 @@ export class Player {
   dequeueInputs() {
     let input: number;
     while ((input = this.inputQueue.shift())) {
-      if (input === 1) {
-        Body.rotate(this.head, -4);
-      } else {
-        Body.rotate(this.head, 4);
-      }
+      this.target = input;
     }
   }
 
+  setScale() {
+    this.scale = this.scale * 1.01;
+    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
+    Body.scale(this.head, 1.01, 1.01);
+    Composite.scale(this.bodyComposite, 1.01, 1.01, { x: 0.5, y: 0.5 });
+  }
+
   eatFood(foodState: Food) {
-    this.addSectionsAfterLast(foodState.size);
-    this.state.score += foodState.size;
+    this.addSectionsAfterLast(1);
+    this.setScale();
   }
 
   destroy() {
     Composite.remove(this.engine.world, this.head);
-
-    this.sections.forEach((sec) => {
-      Composite.remove(this.engine.world, sec);
-    });
-
-    // this.state.sections = new ArraySchema();
+    Composite.clear(this.bodyComposite, false, true);
+    this.sections = [];
   }
 }

@@ -21,6 +21,7 @@ import {
   CONSTANTS,
   GAME_META,
   getIDFromLabel,
+  getRandomArbitrary,
   identifyGameObject,
   IsFoodBody,
   IsSnakeBody,
@@ -31,6 +32,7 @@ import {
 import { generateDummyFood } from '../utils/dummy';
 import { Food } from './schema/Food';
 import { MyRoomState } from './schema/MyRoomState';
+import { SnakeSection } from './schema/SnakeSection';
 const TICK_RATE = 1000 / 60; // 20 ticks per second
 
 export class MyRoom extends Room<MyRoomState> {
@@ -70,9 +72,8 @@ export class MyRoom extends Room<MyRoomState> {
       this.handleJoystick(client, loc)
     );
 
-    this.onMessage('pointerup', (client, loc: any) => {
-      const [x, y] = loc.toString().split('.');
-      this.players.get(client.sessionId)?.rotateTowards(x, y);
+    this.onMessage('input', (client, loc: any) => {
+      this.players.get(client.sessionId)?.inputQueue.push(loc);
     });
 
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
@@ -96,11 +97,14 @@ export class MyRoom extends Room<MyRoomState> {
     ) {
       // player and boundary collision
       const player = this.players.get(getIDFromLabel(pair.bodyB.label));
-      // player?.destroy();
-      // this.state.players.delete(player.state.sessionId);
-      this.players
-        .get(player.state.sessionId)
-        .rotateTowards(GAME_META.width / 2 + '', GAME_META.height / 2 + '');
+      const sections = player.sections.map(
+        (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
+      );
+
+      player.destroy();
+      this.state.players.delete(player.state.sessionId);
+      this.players.delete(player.state.sessionId);
+      this.dropFood(sections);
     }
 
     // player head to body collision
@@ -185,21 +189,14 @@ export class MyRoom extends Room<MyRoomState> {
 
     // generate food items to be dropped
     const player = this.players.get(headPlayerId);
-    for (let i = 0; i < player.sections.length; i++) {
-      const section = player.sections[i];
-      const fd = new Food();
-      fd.id = nanoid(4);
-      fd.x = section.position.x;
-      fd.y = section.position.y;
-      // TODO fix sizes later
-      fd.size = 1;
-      this.addFoodToWorld(fd);
-    }
+    const sections = player.sections.map(
+      (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
+    );
 
     this.players.get(headPlayerId).destroy();
     this.state.players.delete(headPlayerId);
-
     this.players.delete(headPlayerId);
+    this.dropFood(sections);
   }
 
   /**
@@ -283,5 +280,21 @@ export class MyRoom extends Room<MyRoomState> {
       rightWall,
       bottomWall,
     ]);
+  }
+
+  dropFood(sections: SnakeSection[]) {
+    for (let i = 0; i < sections.length; i++) {
+      const sec = sections[i];
+      const f = new Food();
+      f.id = nanoid(4);
+      f.x =
+        sec.x +
+        getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
+      f.y =
+        sec.y +
+        getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
+      f.type = Math.round(Math.random() * 4);
+      this.addFoodToWorld(f);
+    }
   }
 }

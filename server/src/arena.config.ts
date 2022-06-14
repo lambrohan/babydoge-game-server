@@ -6,7 +6,7 @@ import { RedisPresence } from 'colyseus';
  * Import your Room files
  */
 import { MyRoom } from './rooms/MyRoom';
-const isProd = process.env.NODE_ENV == 'production';
+const isProd = false;
 export default Arena({
   getId: () => 'Your Colyseus App',
 

@@ -1,14 +1,15 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
 import { number } from '@colyseus/schema/lib/encoding/decode';
+import { SnakeSkin } from '../../utils';
 import { Food } from './Food';
 import { SnakeSection } from './SnakeSection';
 export interface PlayerOptions {
   publicAddress: string;
   x: number;
   y: number;
-  score: number;
   sessionId: string;
   snakeLength: number;
+  skin: SnakeSkin;
 }
 export class PlayerState extends Schema {
   constructor({
@@ -16,37 +17,37 @@ export class PlayerState extends Schema {
     sessionId,
     x,
     y,
-    score,
     snakeLength,
+    skin,
   }: PlayerOptions) {
     super();
     this.publicAddress = publicAddress;
     this.sessionId = sessionId;
     this.x = x;
     this.y = y;
-    this.score = score;
     this.sections = new ArraySchema();
     this.snakeLength = snakeLength;
+    this.skin = skin;
   }
   publicAddress: string;
 
   @type('string')
   sessionId: string;
 
-  @type('int16')
+  @type('float32')
   x: number;
 
   @type('float32')
   y: number;
 
   @type('number')
-  score: number;
-
-  @type('int16')
   angle: number = 0;
 
   @type('number')
   snakeLength: number = 0;
+
+  @type('int8')
+  skin: SnakeSkin = SnakeSkin.GREEN_WHITE_LINE;
 
   @type([SnakeSection])
   sections: ArraySchema<SnakeSection>;

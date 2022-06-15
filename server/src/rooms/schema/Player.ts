@@ -28,6 +28,7 @@ export class PlayerState extends Schema {
     this.sections = new ArraySchema();
     this.snakeLength = snakeLength;
     this.skin = skin;
+    this.startAt = Date.now();
   }
   publicAddress: string;
 
@@ -51,4 +52,19 @@ export class PlayerState extends Schema {
 
   @type([SnakeSection])
   sections: ArraySchema<SnakeSection>;
+
+  @type('int8')
+  kills: number = 0;
+
+  @type('number')
+  tokens: number = 0;
+
+  @type('boolean')
+  isSpeeding: boolean = false;
+
+  @type('number')
+  startAt: number = 0;
+
+  @type('number')
+  endAt: number = 0;
 }

@@ -75,6 +75,9 @@ export const CONSTANTS = {
   LERP: 0.08,
   ROT_LERP: 0.2,
   PREF_DISTANCE: 12,
+  DEF_SPEED: 2.5,
+  BOOST_SPEED: 5,
+  MIN_SNAKE_LENGTH: 2,
 };
 export function distanceFormula(
   x1: number,
@@ -145,6 +148,7 @@ export enum FoodAssetType {
   ORANGE = 1,
   BLUE = 2,
   COIN = 4,
+  GREEN = 3,
 }
 
 export enum SnakeSkin {

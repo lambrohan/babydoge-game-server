@@ -1,5 +1,7 @@
 import { Reflection } from '@colyseus/schema';
+import { boolean } from '@colyseus/schema/lib/encoding/decode';
 import { Room, Client, Delayed } from 'colyseus';
+import _ from 'lodash';
 import Matter, {
   Engine,
   Body,
@@ -67,13 +69,17 @@ export class MyRoom extends Room<MyRoomState> {
         this.update(TICK_RATE);
       }
     });
-
-    this.onMessage('joystick', (client, loc) =>
-      this.handleJoystick(client, loc)
-    );
-
     this.onMessage('input', (client, loc: any) => {
       this.players.get(client.sessionId)?.inputQueue.push(loc);
+    });
+
+    this.onMessage('speed', (client, speedUp: boolean) => {
+      this.players
+        .get(client.sessionId)
+        ?.toggleSpeed(speedUp, ({ position }: Body) => {
+          const f = new Food(position.x, position.y, 1, _.random(3));
+          this.addFoodToWorld(f);
+        });
     });
 
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
@@ -89,6 +95,7 @@ export class MyRoom extends Room<MyRoomState> {
     ) {
       // player food collision
       this.initFoodEatingSeq(pair);
+      return;
     }
 
     if (
@@ -105,6 +112,7 @@ export class MyRoom extends Room<MyRoomState> {
       this.state.players.delete(player.state.sessionId);
       this.players.delete(player.state.sessionId);
       this.dropFood(sections);
+      return;
     }
 
     // player head to body collision
@@ -113,6 +121,8 @@ export class MyRoom extends Room<MyRoomState> {
       (IsSnakeBody(pair.bodyB) && IsSnakeHead(pair.bodyA))
     ) {
       this.handleP2PCollision(pair);
+
+      return;
     }
   }
 
@@ -194,6 +204,7 @@ export class MyRoom extends Room<MyRoomState> {
     );
 
     this.players.get(headPlayerId).destroy();
+    this.state.players.get(bodyPlayerId).kills++;
     this.state.players.delete(headPlayerId);
     this.players.delete(headPlayerId);
     this.dropFood(sections);
@@ -209,6 +220,7 @@ export class MyRoom extends Room<MyRoomState> {
         x: f.x,
         y: f.y,
       },
+
       isSensor: true,
       isStatic: true,
       angularSpeed: 0,
@@ -229,6 +241,7 @@ export class MyRoom extends Room<MyRoomState> {
       },
     });
     this.state.foodItems.set(f.id, f);
+    Body.scale(fBody, f.scale, f.scale);
     Composite.add(this.engine.world, fBody);
     this.foodBodies.set(f.id, fBody);
   }
@@ -285,15 +298,14 @@ export class MyRoom extends Room<MyRoomState> {
   dropFood(sections: SnakeSection[]) {
     for (let i = 0; i < sections.length; i++) {
       const sec = sections[i];
-      const f = new Food();
-      f.id = nanoid(4);
-      f.x =
+      const x =
         sec.x +
         getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
-      f.y =
+      const y =
         sec.y +
         getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
-      f.type = Math.round(Math.random() * 4);
+      const f = new Food(x, y, 1, _.random(3));
+
       this.addFoodToWorld(f);
     }
   }

@@ -1,4 +1,5 @@
 import { ArraySchema } from '@colyseus/schema';
+import _ from 'lodash';
 import Matter, {
   Bodies,
   Body,
@@ -23,7 +24,6 @@ import {
   getRandomArbitrary,
   labelWithID,
   Point,
-  SnakeSkin,
 } from '../utils';
 import { GameMath } from '../utils/math';
 
@@ -38,11 +38,13 @@ export class Player {
   sections: Array<Body>;
   queuedSections = 0;
   inputQueue: any[] = [];
-  SPEED = 2.5;
+  SPEED = CONSTANTS.DEF_SPEED;
   ROTATION_SPEED = 1 * Math.PI;
   TOLERANCE = 0.02 * this.ROTATION_SPEED;
   target = 0;
   bodyComposite: Composite;
+  lastSpeedupTimestamp = 0;
+  ejectCallback: Function;
 
   constructor(engine: Engine, sessionId: string) {
     this.engine = engine;
@@ -54,7 +56,7 @@ export class Player {
       x: getRandomArbitrary(0, GAME_META.width / 2),
       y: getRandomArbitrary(0, GAME_META.height / 2),
       snakeLength: 0,
-      skin: 2,
+      skin: getRandomArbitrary(0, 2),
     });
 
     this.init();
@@ -203,6 +205,15 @@ export class Player {
     );
     Body.setVelocity(this.head, a);
 
+    if (
+      this.lastSpeedupTimestamp &&
+      this.sections.length > CONSTANTS.MIN_SNAKE_LENGTH &&
+      Date.now() - this.lastSpeedupTimestamp >= 300
+    ) {
+      this.lastSpeedupTimestamp = Date.now();
+      this.ejectFood();
+    }
+
     this.updateState();
 
     if (!this.head) return;
@@ -282,6 +293,22 @@ export class Player {
     this.state.angle = Number(this.head.angle.toFixed(2));
   }
 
+  ejectFood() {
+    const sec = this.sections.pop();
+    this.state.sections.pop();
+    this.state.snakeLength--;
+    this.ejectCallback(sec);
+    if (this.sections.length <= CONSTANTS.MIN_SNAKE_LENGTH) {
+      this.stopSpeeding();
+    }
+  }
+
+  stopSpeeding() {
+    this.SPEED = CONSTANTS.DEF_SPEED;
+    this.state.isSpeeding = false;
+    this.lastSpeedupTimestamp = 0;
+  }
+
   rotateTowards(x: string, y: string) {
     const angle =
       (Math.atan2(
@@ -303,18 +330,35 @@ export class Player {
   }
 
   setScale() {
-    this.scale = this.scale * 1.01;
+    this.scale = this.scale * 1.005;
     this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
-    Body.scale(this.head, 1.01, 1.01);
-    Composite.scale(this.bodyComposite, 1.01, 1.01, { x: 0.5, y: 0.5 });
+    Body.scale(this.head, 1.005, 1.005);
+    Composite.scale(this.bodyComposite, 1.005, 1.005, { x: 0.5, y: 0.5 });
   }
 
   eatFood(foodState: Food) {
     this.addSectionsAfterLast(1);
     this.setScale();
+    this.state.tokens += foodState.tokensInMil;
+  }
+
+  toggleSpeed(speedUp: boolean, callback: Function) {
+    if (this.state.isSpeeding && speedUp) {
+      return;
+    }
+    this.lastSpeedupTimestamp = speedUp ? Date.now() : 0;
+
+    if (this.sections.length <= CONSTANTS.MIN_SNAKE_LENGTH) return;
+    this.ejectCallback = callback;
+    console.log(this.lastSpeedupTimestamp);
+    this.SPEED = speedUp ? CONSTANTS.BOOST_SPEED : CONSTANTS.DEF_SPEED;
+    this.state.isSpeeding = speedUp === true;
   }
 
   destroy() {
+    this.state.endAt = Date.now();
+    console.log('updateEndAt', this.state.endAt);
+
     Composite.remove(this.engine.world, this.head);
     Composite.clear(this.bodyComposite, false, true);
     this.sections = [];

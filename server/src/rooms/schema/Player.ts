@@ -10,6 +10,7 @@ export interface PlayerOptions {
   sessionId: string;
   snakeLength: number;
   skin: SnakeSkin;
+  nickname?: string;
 }
 export class PlayerState extends Schema {
   constructor({
@@ -19,6 +20,7 @@ export class PlayerState extends Schema {
     y,
     snakeLength,
     skin,
+    nickname,
   }: PlayerOptions) {
     super();
     this.publicAddress = publicAddress;
@@ -29,11 +31,15 @@ export class PlayerState extends Schema {
     this.snakeLength = snakeLength;
     this.skin = skin;
     this.startAt = Date.now();
+    this.nickname = nickname || '';
   }
   publicAddress: string;
 
   @type('string')
   sessionId: string;
+
+  @type('string')
+  nickname: string = '';
 
   @type('float32')
   x: number;

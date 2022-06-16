@@ -128,8 +128,7 @@ export class MyRoom extends Room<MyRoomState> {
 
   onJoin(client: Client, options: any) {
     console.log(client.sessionId, 'joined!');
-
-    const player = new Player(this.engine, client.sessionId);
+    const player = new Player(this.engine, client.sessionId, options?.nickname);
     this.players.set(client.sessionId, player);
     this.state.players.set(client.sessionId, player.state);
   }

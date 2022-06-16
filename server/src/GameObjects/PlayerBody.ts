@@ -46,17 +46,18 @@ export class Player {
   lastSpeedupTimestamp = 0;
   ejectCallback: Function;
 
-  constructor(engine: Engine, sessionId: string) {
+  constructor(engine: Engine, sessionId: string, nickname = '') {
     this.engine = engine;
     this.sections = new Array();
     this.headPath = new Array();
     this.state = new PlayerState({
       publicAddress: nanoid(4),
       sessionId: sessionId,
-      x: getRandomArbitrary(0, GAME_META.width / 2),
-      y: getRandomArbitrary(0, GAME_META.height / 2),
+      x: _.random(200, GAME_META.width - 400),
+      y: _.random(500, GAME_META.height - 200),
       snakeLength: 0,
-      skin: getRandomArbitrary(0, 2),
+      skin: getRandomArbitrary(0, 3),
+      nickname,
     });
 
     this.init();
@@ -92,7 +93,7 @@ export class Player {
     Composite.add(this.engine.world, this.head);
 
     // add n sections behind player head
-    this.initSections(2);
+    this.initSections(CONSTANTS.MIN_SNAKE_LENGTH);
   }
 
   initSections(num: number) {

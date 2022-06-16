@@ -10,7 +10,7 @@ export function generateDummyFood() {
       _.random(100, GAME_META.width - 100),
       _.random(GAME_META.height - 100),
       1,
-      _.random(3)
+      _.random(4)
     );
     f.scale = f.type == FoodAssetType.COIN ? 1 : _.random(10, 16) / 10;
     foodGroup.set(f.id, f);

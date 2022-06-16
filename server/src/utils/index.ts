@@ -33,7 +33,6 @@ export const COLLISION_CATEGORIES = {
   SNAKE_BODY: 0b1000,
 };
 
-export const INIT_WITH_LENGTH = 2;
 
 export class Point {
   constructor(x: number, y: number) {
@@ -77,7 +76,7 @@ export const CONSTANTS = {
   PREF_DISTANCE: 12,
   DEF_SPEED: 2.5,
   BOOST_SPEED: 5,
-  MIN_SNAKE_LENGTH: 2,
+  MIN_SNAKE_LENGTH: 4,
 };
 export function distanceFormula(
   x1: number,

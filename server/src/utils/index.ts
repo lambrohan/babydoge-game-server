@@ -1,4 +1,3 @@
-import { number } from '@colyseus/schema/lib/encoding/decode';
 import Matter, { Vector } from 'matter-js';
 
 export const MAX_CLIENTS_PER_ROOM = 500;
@@ -32,7 +31,6 @@ export const COLLISION_CATEGORIES = {
   BOUNDARY: 0b0100,
   SNAKE_BODY: 0b1000,
 };
-
 
 export class Point {
   constructor(x: number, y: number) {
@@ -68,14 +66,14 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 40 / 2,
+  SNAKE_HEAD_RAD: 25 / 2,
   FOOD_RADIUS_MULTIPLIER: 1,
-  FOOD_RADIUS: 16,
+  FOOD_RADIUS: 25,
   LERP: 0.08,
   ROT_LERP: 0.2,
   PREF_DISTANCE: 12,
-  DEF_SPEED: 2.5,
-  BOOST_SPEED: 5,
+  DEF_SPEED: 3.5,
+  BOOST_SPEED: 6,
   MIN_SNAKE_LENGTH: 4,
 };
 export function distanceFormula(

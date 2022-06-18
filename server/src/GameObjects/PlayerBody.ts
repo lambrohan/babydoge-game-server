@@ -1,14 +1,5 @@
-import { ArraySchema } from '@colyseus/schema';
 import _ from 'lodash';
-import Matter, {
-  Bodies,
-  Body,
-  Composite,
-  Composites,
-  Engine,
-  Vector,
-  World,
-} from 'matter-js';
+import Matter, { Bodies, Body, Composite, Engine } from 'matter-js';
 import { nanoid } from 'nanoid';
 import { Food } from '../rooms/schema/Food';
 import { PlayerState } from '../rooms/schema/Player';
@@ -330,7 +321,7 @@ export class Player {
     }
   }
 
-  setScale() {
+  scaleUp() {
     this.scale = this.scale * 1.005;
     this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
     Body.scale(this.head, 1.005, 1.005);
@@ -339,7 +330,7 @@ export class Player {
 
   eatFood(foodState: Food) {
     this.addSectionsAfterLast(1);
-    this.setScale();
+    this.scaleUp();
     this.state.tokens += foodState.tokensInMil;
   }
 
@@ -351,14 +342,12 @@ export class Player {
 
     if (this.sections.length <= CONSTANTS.MIN_SNAKE_LENGTH) return;
     this.ejectCallback = callback;
-    console.log(this.lastSpeedupTimestamp);
     this.SPEED = speedUp ? CONSTANTS.BOOST_SPEED : CONSTANTS.DEF_SPEED;
     this.state.isSpeeding = speedUp === true;
   }
 
   destroy() {
     this.state.endAt = Date.now();
-    console.log('updateEndAt', this.state.endAt);
 
     Composite.remove(this.engine.world, this.head);
     Composite.clear(this.bodyComposite, false, true);

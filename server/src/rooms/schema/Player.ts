@@ -1,7 +1,5 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
-import { number } from '@colyseus/schema/lib/encoding/decode';
 import { SnakeSkin } from '../../utils';
-import { Food } from './Food';
 import { SnakeSection } from './SnakeSection';
 export interface PlayerOptions {
   publicAddress: string;

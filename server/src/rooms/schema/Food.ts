@@ -1,7 +1,7 @@
 import { Schema, type } from '@colyseus/schema';
 import _ from 'lodash';
 import { nanoid } from 'nanoid';
-import { CONSTANTS, FoodAssetType } from '../../utils';
+import { FoodAssetType } from '../../utils';
 
 export class Food extends Schema {
   constructor(x: number, y: number, scale: number, type: FoodAssetType) {
@@ -11,7 +11,6 @@ export class Food extends Schema {
     this.scale = scale;
     this.type = type;
     this.id = nanoid(4);
-    this.tokensInMil = _.random(1, 10);
   }
   @type('string')
   id: string;

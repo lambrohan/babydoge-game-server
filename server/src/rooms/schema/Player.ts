@@ -71,4 +71,7 @@ export class PlayerState extends Schema {
 
   @type('number')
   endAt: number = 0;
+
+  @type('number')
+  scale = 1;
 }

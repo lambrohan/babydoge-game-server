@@ -21,9 +21,11 @@ import {
   COLLISION_CATEGORIES,
   COLLISION_GROUPS,
   CONSTANTS,
+  FoodAssetType,
   GAME_META,
   getIDFromLabel,
   getRandomArbitrary,
+  GetTokensFromFoodType,
   identifyGameObject,
   IsFoodBody,
   IsSnakeBody,
@@ -77,7 +79,8 @@ export class MyRoom extends Room<MyRoomState> {
       this.players
         .get(client.sessionId)
         ?.toggleSpeed(speedUp, ({ position }: Body) => {
-          const f = new Food(position.x, position.y, 1, _.random(3));
+          const f = new Food(position.x, position.y, 1, FoodAssetType.RED);
+          f.tokensInMil = GetTokensFromFoodType(f.type);
           this.addFoodToWorld(f);
         });
     });
@@ -303,7 +306,9 @@ export class MyRoom extends Room<MyRoomState> {
       const y =
         sec.y +
         getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
-      const f = new Food(x, y, 1, _.random(3));
+      const f = new Food(x, y, 1, _.random(4));
+      f.scale = f.type == FoodAssetType.COIN ? 1 : _.random(0.5, 1.0);
+      f.tokensInMil = Math.round(GetTokensFromFoodType(f.type) * f.scale);
 
       this.addFoodToWorld(f);
     }

@@ -181,6 +181,7 @@ export class Player {
   }
 
   update() {
+    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
     this.dequeueInputs();
 
     const angle = GameMath.rotateTo(
@@ -283,6 +284,7 @@ export class Player {
     this.state.x = Number(this.head.position.x.toFixed(2));
     this.state.y = Number(this.head.position.y.toFixed(2));
     this.state.angle = Number(this.head.angle.toFixed(2));
+    this.state.scale = this.scale;
   }
 
   ejectFood() {
@@ -290,6 +292,8 @@ export class Player {
     this.state.sections.pop();
     this.state.snakeLength--;
     this.ejectCallback(sec);
+    this.state.tokens--;
+    this.scaleDown();
     if (this.sections.length <= CONSTANTS.MIN_SNAKE_LENGTH) {
       this.stopSpeeding();
     }
@@ -326,6 +330,16 @@ export class Player {
     this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
     Body.scale(this.head, 1.005, 1.005);
     Composite.scale(this.bodyComposite, 1.005, 1.005, { x: 0.5, y: 0.5 });
+  }
+  scaleDown() {
+    if (this.scale <= 1) return;
+    this.scale = this.scale / 1.005;
+    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
+    Body.scale(this.head, 1 / 1.005, 1 / 1.005);
+    Composite.scale(this.bodyComposite, 1 / 1.005, 1 / 1.005, {
+      x: 0.5,
+      y: 0.5,
+    });
   }
 
   eatFood(foodState: Food) {

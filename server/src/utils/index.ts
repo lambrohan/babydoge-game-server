@@ -153,3 +153,20 @@ export enum SnakeSkin {
   ELECTRIC_BLUE = 1,
   PURPLE_WHITE_RING = 2,
 }
+
+export function GetTokensFromFoodType(type: FoodAssetType): number {
+  switch (type) {
+    case FoodAssetType.RED:
+      return 1;
+    case FoodAssetType.GREEN:
+      return 2;
+    case FoodAssetType.ORANGE:
+      return 10;
+    case FoodAssetType.BLUE:
+      return 100;
+    case FoodAssetType.COIN:
+      return 1000;
+    default:
+      return 0;
+  }
+}

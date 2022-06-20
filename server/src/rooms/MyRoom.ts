@@ -32,6 +32,7 @@ import {
   IsSnakeHead,
   labelWithID,
   MAX_CLIENTS_PER_ROOM,
+  skins,
 } from '../utils';
 import { generateDummyFood } from '../utils/dummy';
 import { Food } from './schema/Food';
@@ -131,7 +132,13 @@ export class MyRoom extends Room<MyRoomState> {
 
   onJoin(client: Client, options: any) {
     console.log(client.sessionId, 'joined!');
-    const player = new Player(this.engine, client.sessionId, options?.nickname);
+    console.log(options.skin);
+    const player = new Player(
+      this.engine,
+      client.sessionId,
+      options?.nickname,
+      skins.findIndex((s) => s.match(options.skin))
+    );
     this.players.set(client.sessionId, player);
     this.state.players.set(client.sessionId, player.state);
   }
@@ -256,7 +263,7 @@ export class MyRoom extends Room<MyRoomState> {
     const leftWall = Matter.Bodies.rectangle(
       0,
       GAME_META.height / 2,
-      1,
+      CONSTANTS.WALL_WIDTH,
       GAME_META.height,
       {
         isStatic: true,
@@ -267,7 +274,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width / 2,
       0,
       GAME_META.width,
-      1,
+      CONSTANTS.WALL_WIDTH,
       {
         isStatic: true,
         label: BODY_LABELS.BOUNDARY,
@@ -277,7 +284,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width,
       GAME_META.height / 2,
 
-      1,
+      CONSTANTS.WALL_WIDTH,
       GAME_META.height,
       { isStatic: true, label: BODY_LABELS.BOUNDARY }
     );
@@ -285,7 +292,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width / 2,
       GAME_META.height,
       GAME_META.width,
-      1,
+      CONSTANTS.WALL_WIDTH,
       { isStatic: true, label: BODY_LABELS.BOUNDARY }
     );
 

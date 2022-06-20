@@ -66,15 +66,16 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 25 / 2,
+  SNAKE_HEAD_RAD: 100 / 2,
   FOOD_RADIUS_MULTIPLIER: 1,
   FOOD_RADIUS: 25,
   LERP: 0.08,
   ROT_LERP: 0.2,
-  PREF_DISTANCE: 12,
+  PREF_DISTANCE: 30,
   DEF_SPEED: 3.5,
   BOOST_SPEED: 6,
   MIN_SNAKE_LENGTH: 4,
+  WALL_WIDTH: 50,
 };
 export function distanceFormula(
   x1: number,
@@ -149,9 +150,8 @@ export enum FoodAssetType {
 }
 
 export enum SnakeSkin {
-  GREEN_WHITE_LINE = 0,
-  ELECTRIC_BLUE = 1,
-  PURPLE_WHITE_RING = 2,
+  PURPLE = 1,
+  BLUE = 0,
 }
 
 export function GetTokensFromFoodType(type: FoodAssetType): number {
@@ -170,3 +170,5 @@ export function GetTokensFromFoodType(type: FoodAssetType): number {
       return 0;
   }
 }
+
+export const skins = ['blue.png', 'purple.png'];

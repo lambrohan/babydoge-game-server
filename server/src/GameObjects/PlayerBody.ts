@@ -24,7 +24,7 @@ export class Player {
   engine: Engine;
   headPath: Array<Point>;
   lastHeadPosition: Point;
-  scale = 1;
+  scale = 0.3;
   preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
   sections: Array<Body>;
   queuedSections = 0;
@@ -37,7 +37,7 @@ export class Player {
   lastSpeedupTimestamp = 0;
   ejectCallback: Function;
 
-  constructor(engine: Engine, sessionId: string, nickname = '') {
+  constructor(engine: Engine, sessionId: string, nickname = '', skin: number) {
     this.engine = engine;
     this.sections = new Array();
     this.headPath = new Array();
@@ -47,7 +47,7 @@ export class Player {
       x: _.random(200, GAME_META.width - 400),
       y: _.random(500, GAME_META.height - 200),
       snakeLength: 0,
-      skin: getRandomArbitrary(0, 3),
+      skin: skin,
       nickname,
     });
 
@@ -60,7 +60,7 @@ export class Player {
     this.head = Bodies.circle(
       this.state.x,
       this.state.y,
-      CONSTANTS.SNAKE_HEAD_RAD,
+      CONSTANTS.SNAKE_HEAD_RAD * this.scale,
       {
         position: { x: this.state.x, y: this.state.y },
         angle: 0,
@@ -136,7 +136,7 @@ export class Player {
 
   addSectionAtPosition(x: number, y: number) {
     //initialize a new section
-    const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD, {
+    const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD * this.scale, {
       isSensor: true,
       force: {
         x: 0,

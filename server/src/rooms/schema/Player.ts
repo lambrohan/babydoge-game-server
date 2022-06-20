@@ -1,5 +1,4 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
-import { SnakeSkin } from '../../utils';
 import { SnakeSection } from './SnakeSection';
 export interface PlayerOptions {
   publicAddress: string;
@@ -7,7 +6,7 @@ export interface PlayerOptions {
   y: number;
   sessionId: string;
   snakeLength: number;
-  skin: SnakeSkin;
+  skin: number;
   nickname?: string;
 }
 export class PlayerState extends Schema {
@@ -52,7 +51,7 @@ export class PlayerState extends Schema {
   snakeLength: number = 0;
 
   @type('int8')
-  skin: SnakeSkin = SnakeSkin.GREEN_WHITE_LINE;
+  skin: number = 0;
 
   @type([SnakeSection])
   sections: ArraySchema<SnakeSection>;

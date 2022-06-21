@@ -75,6 +75,7 @@ export const CONSTANTS = {
   DEF_SPEED: 3.5,
   BOOST_SPEED: 6,
   MIN_SNAKE_LENGTH: 4,
+  WALL_WIDTH: 50,
 };
 export function distanceFormula(
   x1: number,

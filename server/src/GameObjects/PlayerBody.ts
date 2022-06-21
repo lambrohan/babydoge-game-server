@@ -24,7 +24,7 @@ export class Player {
   engine: Engine;
   headPath: Array<Point>;
   lastHeadPosition: Point;
-  scale = 1;
+  scale = 1.2;
   preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
   sections: Array<Body>;
   queuedSections = 0;
@@ -49,7 +49,12 @@ export class Player {
       snakeLength: 0,
       skin: getRandomArbitrary(0, 3),
       nickname,
+      cooldown: true,
     });
+
+    setTimeout(() => {
+      this.state.cooldown = false;
+    }, 5000);
 
     this.init();
   }
@@ -288,6 +293,7 @@ export class Player {
   }
 
   ejectFood() {
+    if (typeof this.ejectCallback !== 'function') return;
     const sec = this.sections.pop();
     this.state.sections.pop();
     this.state.snakeLength--;
@@ -343,6 +349,7 @@ export class Player {
   }
 
   eatFood(foodState: Food) {
+    if (!foodState) return;
     this.addSectionsAfterLast(1);
     this.scaleUp();
     this.state.tokens += foodState.tokensInMil;

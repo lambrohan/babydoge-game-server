@@ -9,6 +9,7 @@ export interface PlayerOptions {
   snakeLength: number;
   skin: SnakeSkin;
   nickname?: string;
+  cooldown?: boolean;
 }
 export class PlayerState extends Schema {
   constructor({
@@ -19,6 +20,7 @@ export class PlayerState extends Schema {
     snakeLength,
     skin,
     nickname,
+    cooldown = false,
   }: PlayerOptions) {
     super();
     this.publicAddress = publicAddress;
@@ -30,6 +32,7 @@ export class PlayerState extends Schema {
     this.skin = skin;
     this.startAt = Date.now();
     this.nickname = nickname || '';
+    this.cooldown = cooldown;
   }
   publicAddress: string;
 
@@ -74,4 +77,7 @@ export class PlayerState extends Schema {
 
   @type('number')
   scale = 1;
+
+  @type('boolean')
+  cooldown = false;
 }

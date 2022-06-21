@@ -6,15 +6,12 @@ import Matter, {
   Engine,
   Body,
   Runner,
-  Vector,
   Composite,
-  Bounds,
   World,
   Bodies,
   IEventCollision,
   IPair,
 } from 'matter-js';
-import { nanoid } from 'nanoid';
 import { Player } from '../GameObjects/PlayerBody';
 import {
   BODY_LABELS,
@@ -201,6 +198,7 @@ export class MyRoom extends Room<MyRoomState> {
 
     // generate food items to be dropped
     const player = this.players.get(headPlayerId);
+    if (player.state.cooldown) return;
     const sections = player.sections.map(
       (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
     );
@@ -256,7 +254,7 @@ export class MyRoom extends Room<MyRoomState> {
     const leftWall = Matter.Bodies.rectangle(
       0,
       GAME_META.height / 2,
-      1,
+      CONSTANTS.WALL_WIDTH,
       GAME_META.height,
       {
         isStatic: true,
@@ -267,7 +265,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width / 2,
       0,
       GAME_META.width,
-      1,
+      CONSTANTS.WALL_WIDTH,
       {
         isStatic: true,
         label: BODY_LABELS.BOUNDARY,
@@ -277,7 +275,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width,
       GAME_META.height / 2,
 
-      1,
+      CONSTANTS.WALL_WIDTH,
       GAME_META.height,
       { isStatic: true, label: BODY_LABELS.BOUNDARY }
     );
@@ -285,7 +283,7 @@ export class MyRoom extends Room<MyRoomState> {
       GAME_META.width / 2,
       GAME_META.height,
       GAME_META.width,
-      1,
+      CONSTANTS.WALL_WIDTH,
       { isStatic: true, label: BODY_LABELS.BOUNDARY }
     );
 

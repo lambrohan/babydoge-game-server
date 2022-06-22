@@ -145,6 +145,9 @@ export class MyRoom extends Room<MyRoomState> {
 
   onDispose() {
     console.log('room', this.roomId, 'disposing...');
+    Engine.clear(this.engine);
+    this.players = null;
+    this.foodBodies = null;
   }
 
   // game loop

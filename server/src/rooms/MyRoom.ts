@@ -1,4 +1,4 @@
-import { Reflection } from '@colyseus/schema';
+import { MapSchema, Reflection } from '@colyseus/schema';
 import { boolean } from '@colyseus/schema/lib/encoding/decode';
 import { Room, Client, Delayed } from 'colyseus';
 import _ from 'lodash';
@@ -146,8 +146,8 @@ export class MyRoom extends Room<MyRoomState> {
   onDispose() {
     console.log('room', this.roomId, 'disposing...');
     Engine.clear(this.engine);
-    this.players = null;
-    this.foodBodies = null;
+    this.players = new MapSchema();
+    this.foodBodies = new MapSchema();
   }
 
   // game loop

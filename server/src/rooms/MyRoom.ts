@@ -135,8 +135,9 @@ export class MyRoom extends Room<MyRoomState> {
 
   onLeave(client: Client, consented: boolean) {
     console.log(client.sessionId, 'left!');
-    if (!this.players.has(client.sessionId)) return;
-    this.players.get(client.sessionId).destroy();
+    if (!this.players.has(client.sessionId)) {
+      this.players.get(client.sessionId).destroy();
+    }
 
     this.players.delete(client.sessionId);
     this.state.players.delete(client.sessionId);

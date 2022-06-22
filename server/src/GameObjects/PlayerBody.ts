@@ -369,9 +369,12 @@ export class Player {
 
   destroy() {
     this.state.endAt = Date.now();
-
     Composite.remove(this.engine.world, this.head);
-    Composite.clear(this.bodyComposite, false, true);
+    this.sections.forEach((s) => {
+      Composite.remove(this.engine.world, s);
+    });
+
+    Composite.remove(this.engine.world, this.bodyComposite, true);
     this.sections = [];
   }
 }

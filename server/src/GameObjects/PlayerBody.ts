@@ -10,7 +10,6 @@ import {
   COLLISION_GROUPS,
   CONSTANTS,
   degToRad,
-  distanceFormula,
   GAME_META,
   getRandomArbitrary,
   labelWithID,
@@ -22,31 +21,26 @@ export class Player {
   head: Body;
   state: PlayerState;
   engine: Engine;
-  headPath: Array<Point>;
-  lastHeadPosition: Point;
-  scale = 1.2;
-  preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
+  snakePath: Array<Point>;
   sections: Array<Body>;
-  queuedSections = 0;
   inputQueue: any[] = [];
   SPEED = CONSTANTS.DEF_SPEED;
-  ROTATION_SPEED = 1 * Math.PI;
-  TOLERANCE = 0.02 * this.ROTATION_SPEED;
   target = 0;
   bodyComposite: Composite;
   lastSpeedupTimestamp = 0;
   ejectCallback: Function;
+  snakeSpacer = 1;
 
   constructor(engine: Engine, sessionId: string, nickname = '') {
     this.engine = engine;
     this.sections = new Array();
-    this.headPath = new Array();
+    this.snakePath = new Array();
     this.state = new PlayerState({
       publicAddress: nanoid(4),
       sessionId: sessionId,
       x: _.random(200, GAME_META.width - 400),
       y: _.random(500, GAME_META.height - 200),
-      snakeLength: 0,
+      snakeLength: CONSTANTS.MIN_SNAKE_LENGTH,
       skin: getRandomArbitrary(0, 3),
       nickname,
       cooldown: true,
@@ -84,109 +78,55 @@ export class Player {
         },
       }
     );
-    this.lastHeadPosition = new Point(this.state.x, this.state.y);
 
     Composite.add(this.engine.world, this.head);
 
     // add n sections behind player head
-    this.initSections(CONSTANTS.MIN_SNAKE_LENGTH);
+    this.initSections(this.state.snakeLength);
   }
 
   initSections(num: number) {
-    for (let i = 1; i <= num; i++) {
+    for (let i = 1; i <= num - 1; i++) {
       const x = this.head.position.x;
-      const y = this.head.position.x + i * this.preferredDistance;
-      this.addSectionAtPosition(x, y);
+      const y = this.head.position.y;
       //add a point to the head path so that the section stays there
-      this.headPath.push(new Point(this.head.position.x, this.head.position.y));
-    }
-  }
+      const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD, {
+        isSensor: true,
+        force: {
+          x: 0,
+          y: 0,
+        },
+        mass: 0,
+        inertia: 0,
+        friction: 0,
+        speed: 0,
+        angularSpeed: 0,
+        velocity: {
+          x: 0,
+          y: 0,
+        },
 
-  findNextPointIndex(currentIndex: number) {
-    //we are trying to find a point at approximately this distance away
-    //from the point before it, where the distance is the total length of
-    //all the lines connecting the two points
-    let prefDist = this.preferredDistance;
-    let len = 0;
-    let dif = len - prefDist;
-    let i = currentIndex;
-    let prevDif = null;
-    //this loop sums the distances between points on the path of the head
-    //starting from the given index of the function and continues until
-    //this sum nears the preferred distance between two snake sections
-    while (i + 1 < this.headPath.length && (dif === null || dif < 0)) {
-      //get distance between next two points
-      let dist = distanceFormula(
-        this.headPath[i].x,
-        this.headPath[i].y,
-        this.headPath[i + 1].x,
-        this.headPath[i + 1].y
+        label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
+        collisionFilter: {
+          group: COLLISION_GROUPS.FOOD,
+          category: COLLISION_CATEGORIES.SNAKE_HEAD,
+        },
+      });
+
+      Composite.add(this.bodyComposite, sec);
+      this.sections[i] = sec;
+    }
+
+    for (let i = 0; i <= num * this.snakeSpacer; i++) {
+      this.snakePath[i] = new Point(
+        this.head.position.x,
+        this.head.position.x,
+        this.head.angle
       );
-      len += dist;
-      prevDif = dif;
-      //we are trying to get the difference between the current sum and
-      //the preferred distance close to zero
-      dif = len - prefDist;
-      i++;
     }
-
-    //choose the index that makes the difference closer to zero
-    //once the loop is complete
-    if (prevDif === null || Math.abs(prevDif) > Math.abs(dif)) {
-      return i;
-    } else {
-      return i - 1;
-    }
-  }
-
-  addSectionAtPosition(x: number, y: number) {
-    //initialize a new section
-    const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD, {
-      isSensor: true,
-      force: {
-        x: 0,
-        y: 0,
-      },
-      mass: 0,
-      inertia: 0,
-      friction: 0,
-      speed: 0,
-      angularSpeed: 0,
-      velocity: {
-        x: 0,
-        y: 0,
-      },
-
-      label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
-      collisionFilter: {
-        group: COLLISION_GROUPS.FOOD,
-        category: COLLISION_CATEGORIES.SNAKE_HEAD,
-      },
-    });
-
-    Composite.add(this.bodyComposite, sec);
-    this.state.snakeLength++;
-
-    this.sections.push(sec);
-    this.state.sections.push(new SnakeSection(x, y));
-
-    return sec;
-  }
-
-  onCycleComplete() {
-    if (this.queuedSections > 0) {
-      let lastSec = this.sections[this.sections.length - 1];
-      this.addSectionAtPosition(lastSec.position.x, lastSec.position.y);
-      this.queuedSections--;
-    }
-  }
-
-  addSectionsAfterLast(amount: number) {
-    this.queuedSections += amount;
   }
 
   update() {
-    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
     this.dequeueInputs();
 
     const angle = GameMath.rotateTo(
@@ -212,84 +152,25 @@ export class Player {
       this.ejectFood();
     }
 
-    this.updateState();
+    const part = this.snakePath.pop()!;
+    part.setTo(this.head.position.x, this.head.position.y, this.head.angle);
+    this.snakePath.unshift(part);
 
-    if (!this.head) return;
-    let point = this.headPath.pop()!;
-    point.setTo(this.head.position.x, this.head.position.y);
-    this.headPath.unshift(point);
-
-    //place each section of the snake on the path of the snake head,
-    //a certain distance from the section before it
-    let index = 0;
-    let lastIndex = null;
-    for (let i = 0; i < this.state.snakeLength; i++) {
-      Body.setPosition(
+    for (let i = 1; i <= this.state.snakeLength - 1; i++) {
+      Body.setPosition(this.sections[i], this.snakePath[i * this.snakeSpacer]);
+      Body.setAngle(
         this.sections[i],
-        Matter.Vector.create(this.headPath[index].x, this.headPath[index].y)
+        this.snakePath[i * this.snakeSpacer].angle
       );
-
-      // this.updateSectionState(i)
-
-      //hide sections if they are at the same position
-      // if (lastIndex && index == lastIndex) {
-      // 	this.sections[i].alpha = 0
-      // } else {
-      // 	this.sections[i].alpha = 1
-      // }
-
-      lastIndex = index;
-      //this finds the index in the head path array that the next point
-      //should be at
-      index = this.findNextPointIndex(index);
     }
 
-    if (index >= this.headPath.length - 1) {
-      let lastPos = this.headPath[this.headPath.length - 1];
-      this.headPath.push(new Point(lastPos.x, lastPos.y));
-    } else {
-      this.headPath.pop();
-    }
-
-    //this calls onCycleComplete every time a cycle is completed
-    //a cycle is the time it takes the second section of a snake to reach
-    //where the head of the snake was at the end of the last cycle
-    let i = 0;
-    let found = false;
-    while (
-      this.headPath[i].x != this.sections[1].position.x &&
-      this.headPath[i].y != this.sections[1].position.y
-    ) {
-      if (
-        this.headPath[i].x == this.lastHeadPosition.x &&
-        this.headPath[i].y == this.lastHeadPosition.y
-      ) {
-        found = true;
-        break;
-      }
-      i++;
-    }
-    if (!found) {
-      this.lastHeadPosition = new Point(
-        this.head.position.x,
-        this.head.position.y
-      );
-      this.onCycleComplete();
-    }
-  }
-
-  updateSectionState(i: number) {
-    this.state.sections[i].setTo(
-      Number(this.sections[i].position.x.toFixed(2)),
-      Number(this.sections[i].position.y.toFixed(2))
-    );
+    this.updateState();
   }
 
   updateState() {
     this.state.x = Number(this.head.position.x.toFixed(2));
     this.state.y = Number(this.head.position.y.toFixed(2));
     this.state.angle = Number(this.head.angle.toFixed(2));
-    this.state.scale = this.scale;
   }
 
   ejectFood() {
@@ -297,6 +178,10 @@ export class Player {
     const sec = this.sections.pop();
     this.state.sections.pop();
     this.state.snakeLength--;
+    this.snakePath = this.snakePath.slice(
+      0,
+      this.snakePath.length - this.snakeSpacer
+    );
     this.ejectCallback(sec);
     this.state.tokens--;
     this.scaleDown();
@@ -332,15 +217,12 @@ export class Player {
   }
 
   scaleUp() {
-    this.scale = this.scale * 1.005;
-    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
+    this.state.scale = this.state.scale * 1.005;
     Body.scale(this.head, 1.005, 1.005);
     Composite.scale(this.bodyComposite, 1.005, 1.005, { x: 0.5, y: 0.5 });
   }
   scaleDown() {
-    if (this.scale <= 1) return;
-    this.scale = this.scale / 1.005;
-    this.preferredDistance = CONSTANTS.PREF_DISTANCE * this.scale;
+    this.state.scale = this.state.scale / 1.005;
     Body.scale(this.head, 1 / 1.005, 1 / 1.005);
     Composite.scale(this.bodyComposite, 1 / 1.005, 1 / 1.005, {
       x: 0.5,
@@ -350,9 +232,58 @@ export class Player {
 
   eatFood(foodState: Food) {
     if (!foodState) return;
-    this.addSectionsAfterLast(1);
-    this.scaleUp();
     this.state.tokens += foodState.tokensInMil;
+    this.addSection();
+    this.scaleUp();
+  }
+
+  addSection() {
+    const last = this.sections[this.sections.length - 1];
+    const sec = Bodies.circle(
+      last.position.x,
+      last.position.y,
+      CONSTANTS.SNAKE_HEAD_RAD,
+      {
+        isSensor: true,
+        force: {
+          x: 0,
+          y: 0,
+        },
+        mass: 0,
+        inertia: 0,
+        friction: 0,
+        speed: 0,
+        angularSpeed: 0,
+        velocity: {
+          x: 0,
+          y: 0,
+        },
+
+        label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
+        collisionFilter: {
+          group: COLLISION_GROUPS.FOOD,
+          category: COLLISION_CATEGORIES.SNAKE_HEAD,
+        },
+      }
+    );
+
+    Body.setAngle(sec, last.angle);
+    Composite.add(this.bodyComposite, sec);
+    this.sections.push(sec);
+    this.state.sections.push(new SnakeSection(sec.position.x, sec.position.y));
+    this.state.snakeLength++;
+
+    for (
+      let i = this.snakePath.length;
+      i <= this.state.snakeLength * this.snakeSpacer;
+      i++
+    ) {
+      this.snakePath[i] = new Point(
+        this.snakePath[i - 1].x,
+        this.snakePath[i - 1].y,
+        this.snakePath[i - 1].angle
+      );
+    }
   }
 
   toggleSpeed(speedUp: boolean, callback: Function) {

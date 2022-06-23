@@ -33,16 +33,19 @@ export const COLLISION_CATEGORIES = {
 };
 
 export class Point {
-  constructor(x: number, y: number) {
+  constructor(x: number, y: number, angle: number) {
     this.x = x;
     this.y = y;
+    this.angle = angle;
   }
   x: number;
   y: number;
+  angle: number;
 
-  setTo(x: number, y: number) {
+  setTo(x: number, y: number, angle: number) {
     this.x = x;
     this.y = y;
+    this.angle = angle;
   }
 }
 
@@ -66,7 +69,7 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 25 / 2,
+  SNAKE_HEAD_RAD: 24 / 2,
   FOOD_RADIUS_MULTIPLIER: 1,
   FOOD_RADIUS: 25,
   LERP: 0.08,
@@ -74,7 +77,7 @@ export const CONSTANTS = {
   PREF_DISTANCE: 12,
   DEF_SPEED: 3.5,
   BOOST_SPEED: 6,
-  MIN_SNAKE_LENGTH: 4,
+  MIN_SNAKE_LENGTH: 30,
   WALL_WIDTH: 50,
 };
 export function distanceFormula(

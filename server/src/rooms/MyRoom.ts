@@ -300,7 +300,7 @@ export class MyRoom extends Room<MyRoomState> {
   }
 
   dropFood(sections: SnakeSection[]) {
-    for (let i = 0; i < sections.length; i++) {
+    for (let i = 1; i < sections.length; i++) {
       const sec = sections[i];
       const x =
         sec.x +

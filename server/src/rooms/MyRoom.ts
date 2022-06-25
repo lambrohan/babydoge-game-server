@@ -1,5 +1,4 @@
 import { MapSchema, Reflection } from '@colyseus/schema';
-import { boolean } from '@colyseus/schema/lib/encoding/decode';
 import { Room, Client, Delayed } from 'colyseus';
 import _ from 'lodash';
 import Matter, {
@@ -73,13 +72,18 @@ export class MyRoom extends Room<MyRoomState> {
     });
 
     this.onMessage('speed', (client, speedUp: boolean) => {
-      this.players
-        .get(client.sessionId)
-        ?.toggleSpeed(speedUp, ({ position }: Body) => {
-          const f = new Food(position.x, position.y, 1, FoodAssetType.RED);
-          f.tokensInMil = GetTokensFromFoodType(f.type);
-          this.addFoodToWorld(f);
-        });
+      this.players.get(client.sessionId)?.toggleSpeed(speedUp, (sec: Body) => {
+        if (!sec) return;
+        const f = new Food(
+          sec.position.x,
+          sec.position.y,
+          1,
+          FoodAssetType.RED
+        );
+        f.tokensInMil = GetTokensFromFoodType(f.type);
+        this.addFoodToWorld(f);
+        Composite.remove(this.engine.world, sec);
+      });
     });
 
     Matter.Events.on(this.engine, 'collisionStart', (event) => {

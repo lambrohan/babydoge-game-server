@@ -69,7 +69,7 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 24 / 2,
+  SNAKE_HEAD_RAD: 12,
   FOOD_RADIUS_MULTIPLIER: 1,
   FOOD_RADIUS: 25,
   LERP: 0.08,

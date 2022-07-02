@@ -29,7 +29,7 @@ export class Player {
   bodyComposite: Composite;
   lastSpeedupTimestamp = 0;
   ejectCallback: Function;
-  snakeSpacer = 1;
+  snakeSpacer = 3;
 
   constructor(engine: Engine, sessionId: string, nickname = '') {
     this.engine = engine;
@@ -120,7 +120,7 @@ export class Player {
     for (let i = 0; i <= num * this.snakeSpacer; i++) {
       this.snakePath[i] = new Point(
         this.head.position.x,
-        this.head.position.x,
+        this.head.position.y,
         this.head.angle
       );
     }

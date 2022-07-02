@@ -38,13 +38,14 @@ const TICK_RATE = 1000 / 60; // 20 ticks per second
 export class MyRoom extends Room<MyRoomState> {
   delayedInterval!: Delayed;
   maxClients: number = MAX_CLIENTS_PER_ROOM;
-  engine: Matter.Engine = Engine.create({
-    gravity: { x: 0, y: 0 },
-  });
+  engine: Matter.Engine;
   players: Map<string, Player> = new Map();
   foodBodies: Map<string, Body> = new Map();
   onCreate() {
     console.log('room created');
+    this.engine = Engine.create({
+      gravity: { x: 0, y: 0 },
+    });
     Runner.run(this.engine);
     this.engine.world.bounds = {
       min: { x: 0, y: 0 },
@@ -115,7 +116,7 @@ export class MyRoom extends Room<MyRoomState> {
       player.destroy();
       this.state.players.delete(player.state.sessionId);
       this.players.delete(player.state.sessionId);
-      this.dropFood(sections);
+      // this.dropFood(sections);
       return;
     }
 
@@ -152,6 +153,7 @@ export class MyRoom extends Room<MyRoomState> {
     Engine.clear(this.engine);
     this.players = new MapSchema();
     this.foodBodies = new MapSchema();
+    console.log('room', this.roomId, 'disposed');
   }
 
   // game loop
@@ -215,7 +217,7 @@ export class MyRoom extends Room<MyRoomState> {
     this.state.players.get(bodyPlayerId).kills++;
     this.state.players.delete(headPlayerId);
     this.players.delete(headPlayerId);
-    this.dropFood(sections);
+    // this.dropFood(sections);
   }
 
   /**
@@ -301,6 +303,15 @@ export class MyRoom extends Room<MyRoomState> {
       rightWall,
       bottomWall,
     ]);
+  }
+
+  createCircularWall() {
+    Matter.Bodies.circle(
+      GAME_META.width / 2,
+      GAME_META.height / 2,
+      GAME_META.width / 2,
+      { isSensor: true, mass: 0 }
+    );
   }
 
   dropFood(sections: SnakeSection[]) {

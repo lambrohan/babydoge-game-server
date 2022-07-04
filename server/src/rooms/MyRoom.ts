@@ -10,6 +10,7 @@ import Matter, {
   Bodies,
   IEventCollision,
   IPair,
+  Bounds,
 } from 'matter-js';
 import { Player } from '../GameObjects/PlayerBody';
 import {
@@ -17,6 +18,7 @@ import {
   COLLISION_CATEGORIES,
   COLLISION_GROUPS,
   CONSTANTS,
+  degToRad,
   FoodAssetType,
   GAME_META,
   getIDFromLabel,
@@ -49,7 +51,10 @@ export class MyRoom extends Room<MyRoomState> {
     Runner.run(this.engine);
     this.engine.world.bounds = {
       min: { x: 0, y: 0 },
-      max: { x: GAME_META.width, y: GAME_META.height },
+      max: {
+        x: GAME_META.width,
+        y: GAME_META.height,
+      },
     };
 
     this.createWalls();
@@ -87,12 +92,12 @@ export class MyRoom extends Room<MyRoomState> {
       });
     });
 
-    Matter.Events.on(this.engine, 'collisionStart', (event) => {
-      this.handleCollision(event);
+    Matter.Events.on(this.engine, 'collisionStart', async (event) => {
+      await this.handleCollision(event);
     });
   }
 
-  handleCollision(event: IEventCollision<Matter.Engine>) {
+  async handleCollision(event: IEventCollision<Matter.Engine>) {
     const [pair] = event.pairs;
     if (
       (IsFoodBody(pair.bodyA) && IsSnakeHead(pair.bodyB)) ||
@@ -103,31 +108,12 @@ export class MyRoom extends Room<MyRoomState> {
       return;
     }
 
-    if (
-      identifyGameObject(pair.bodyA.label) === BODY_LABELS.BOUNDARY &&
-      identifyGameObject(pair.bodyB.label) === BODY_LABELS.SNAKE_HEAD
-    ) {
-      // player and boundary collision
-      const player = this.players.get(getIDFromLabel(pair.bodyB.label));
-      const sections = player.sections.map(
-        (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
-      );
-
-      player.destroy();
-      this.state.players.delete(player.state.sessionId);
-      this.players.delete(player.state.sessionId);
-      // this.dropFood(sections);
-      return;
-    }
-
     // player head to body collision
     if (
       (IsSnakeBody(pair.bodyA) && IsSnakeHead(pair.bodyB)) ||
       (IsSnakeBody(pair.bodyB) && IsSnakeHead(pair.bodyA))
     ) {
       this.handleP2PCollision(pair);
-
-      return;
     }
   }
 
@@ -160,7 +146,26 @@ export class MyRoom extends Room<MyRoomState> {
   update(delta: number) {
     this.state.players.forEach((p) => {
       const player = this.players.get(p.sessionId);
-      player ? player.update() : '';
+      if (player) {
+        player.update();
+
+        // if player out of bound remove
+        if (!Bounds.contains(this.engine.world.bounds, player.head.position)) {
+          if (process.env.NODE_ENV === 'loadtest') {
+            player.rotateTowards(GAME_META.width / 2, GAME_META.height / 2);
+          } else {
+            const sections = player.sections.map(
+              (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
+            );
+
+            player.destroy();
+            this.state.players.delete(player.state.sessionId);
+            this.players.delete(player.state.sessionId);
+            // uncomment the line below to drop food when snake dies at boundary
+            // this.dropFood(sections);
+          }
+        }
+      }
     });
   }
 
@@ -199,6 +204,9 @@ export class MyRoom extends Room<MyRoomState> {
    */
 
   handleP2PCollision(pair: IPair) {
+    if (process.env.NODE_ENV === 'loadtest') {
+      return;
+    }
     const snakeHead = IsSnakeHead(pair.bodyA) ? pair.bodyA : pair.bodyB;
     const snakeBody = IsSnakeBody(pair.bodyA) ? pair.bodyA : pair.bodyB;
     // destory player with snake haead
@@ -269,6 +277,7 @@ export class MyRoom extends Room<MyRoomState> {
       {
         isStatic: true,
         label: BODY_LABELS.BOUNDARY,
+        mass: 10,
       }
     );
     const topWall = Matter.Bodies.rectangle(
@@ -279,6 +288,7 @@ export class MyRoom extends Room<MyRoomState> {
       {
         isStatic: true,
         label: BODY_LABELS.BOUNDARY,
+        mass: 10,
       }
     );
     const rightWall = Matter.Bodies.rectangle(
@@ -287,14 +297,19 @@ export class MyRoom extends Room<MyRoomState> {
 
       CONSTANTS.WALL_WIDTH,
       GAME_META.height,
-      { isStatic: true, label: BODY_LABELS.BOUNDARY }
+      {
+        isStatic: true,
+        label: BODY_LABELS.BOUNDARY,
+
+        mass: 10,
+      }
     );
     const bottomWall = Matter.Bodies.rectangle(
       GAME_META.width / 2,
       GAME_META.height,
       GAME_META.width,
       CONSTANTS.WALL_WIDTH,
-      { isStatic: true, label: BODY_LABELS.BOUNDARY }
+      { isStatic: true, label: BODY_LABELS.BOUNDARY, mass: 10 }
     );
 
     Composite.add(this.engine.world, [

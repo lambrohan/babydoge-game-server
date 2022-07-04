@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import Matter, { Bodies, Body, Composite, Engine } from 'matter-js';
+import Matter, { Bodies, Body, Bounds, Composite, Engine } from 'matter-js';
 import { nanoid } from 'nanoid';
 import { Food } from '../rooms/schema/Food';
 import { PlayerState } from '../rooms/schema/Player';
@@ -196,17 +196,16 @@ export class Player {
     this.lastSpeedupTimestamp = 0;
   }
 
-  rotateTowards(x: string, y: string) {
-    const angle =
-      (Math.atan2(
-        parseInt(y) - this.head.position.y,
-        parseInt(x) - this.head.position.x
-      ) *
-        180) /
-      Math.PI;
-    const currentAngle = this.head.angle;
+  rotateTowards(x: number, y: number) {
+    const angle = Math.atan2(
+      y - this.head.position.y,
+      x - this.head.position.x
+    );
 
-    Body.rotate(this.head, angle - currentAngle);
+    const currentAngle = this.head.angle;
+    this.target = angle;
+
+    // Body.rotate(this.head, angle - currentAngle);
   }
 
   dequeueInputs() {
@@ -301,6 +300,7 @@ export class Player {
   destroy() {
     this.state.endAt = Date.now();
     Composite.remove(this.engine.world, this.head);
+    console.log('destroy');
     this.sections.forEach((s) => {
       Composite.remove(this.engine.world, s);
     });

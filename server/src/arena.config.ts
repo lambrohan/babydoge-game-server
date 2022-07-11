@@ -11,20 +11,8 @@ import { ApiService } from './api';
  * Import your Room files
  */
 import { MyRoom } from './rooms/MyRoom';
-const isProd = false;
 export default Arena({
   getId: () => 'Your Colyseus App',
-
-  options: isProd
-    ? {
-        presence: new RedisPresence({
-          host: process.env.REDIS_HOST || 'localhost',
-          port: (process.env.REDIS_PORT as any) || 6379,
-          password: process.env.REDIS_PASSWORD || '',
-        }),
-        // driver: new MongooseDriver(MONGOOSE_CONFIG()),  uncomment this if you want to use mongodb instead of redis
-      }
-    : {},
   initializeGameServer: async (gameServer) => {
     /**
      * Define your room handlers:

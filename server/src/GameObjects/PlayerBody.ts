@@ -72,7 +72,7 @@ export class Player {
     this.head = Bodies.circle(
       this.state.x,
       this.state.y,
-      CONSTANTS.SNAKE_HEAD_RAD,
+      CONSTANTS.SNAKE_HEAD_RAD * this.state.scale,
       {
         position: { x: this.state.x, y: this.state.y },
         angle: 0,
@@ -101,42 +101,45 @@ export class Player {
   }
 
   initSections(num: number) {
-    for (let i = 1; i <= num - 1; i++) {
+    for (let i = 0; i < num; i++) {
       const x = this.head.position.x;
       const y = this.head.position.y;
       //add a point to the head path so that the section stays there
-      const sec = Bodies.circle(x, y, CONSTANTS.SNAKE_HEAD_RAD, {
-        isSensor: true,
-        force: {
-          x: 0,
-          y: 0,
-        },
-        mass: 0,
-        inertia: 0,
-        friction: 0,
-        speed: 0,
-        angularSpeed: 0,
-        velocity: {
-          x: 0,
-          y: 0,
-        },
+      const sec = Bodies.circle(
+        x,
+        y,
+        CONSTANTS.SNAKE_HEAD_RAD * this.state.scale,
+        {
+          isSensor: true,
+          force: {
+            x: 0,
+            y: 0,
+          },
+          mass: 0,
+          inertia: 0,
+          friction: 0,
+          speed: 0,
+          angularSpeed: 0,
+          velocity: {
+            x: 0,
+            y: 0,
+          },
 
-        label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
-        collisionFilter: {
-          group: COLLISION_GROUPS.FOOD,
-          category: COLLISION_CATEGORIES.SNAKE_HEAD,
-        },
-      });
+          label: labelWithID(BODY_LABELS.SNAKE_BODY, this.state.sessionId),
+          collisionFilter: {
+            group: COLLISION_GROUPS.FOOD,
+            category: COLLISION_CATEGORIES.SNAKE_HEAD,
+          },
+        }
+      );
 
       Composite.add(this.bodyComposite, sec);
-      this.sections[i] = sec;
+      this.sections.push(sec);
     }
 
-    for (let i = 0; i <= num * this.state.spacer; i++) {
-      this.snakePath[i] = new Point(
-        this.head.position.x,
-        this.head.position.y,
-        this.head.angle
+    for (let i = 0; i < num * this.state.spacer; i++) {
+      this.snakePath.push(
+        new Point(this.head.position.x, this.head.position.y, this.head.angle)
       );
     }
   }
@@ -171,12 +174,10 @@ export class Player {
     part.setTo(this.head.position.x, this.head.position.y, this.head.angle);
     this.snakePath.unshift(part);
 
-    for (let i = 1; i <= this.state.snakeLength - 1; i++) {
-      Body.setPosition(this.sections[i], this.snakePath[i * this.state.spacer]);
-      Body.setAngle(
-        this.sections[i],
-        this.snakePath[i * this.state.spacer].angle
-      );
+    for (let i = 0; i < this.sections.length; i++) {
+      const el = this.snakePath[i * this.state.spacer];
+      Body.setPosition(this.sections[i], el);
+      Body.setAngle(this.sections[i], el.angle);
     }
 
     this.updateState();
@@ -193,10 +194,9 @@ export class Player {
     const sec = this.sections.pop();
     this.state.sections.pop();
     this.state.snakeLength--;
-    this.snakePath = this.snakePath.slice(
-      0,
-      this.snakePath.length - this.state.spacer
-    );
+    for (let i = 0; i < this.state.spacer; i++) {
+      this.snakePath.pop();
+    }
     this.ejectCallback(sec);
     this.state.tokens > 0 ? this.state.tokens-- : '';
     this.scaleDown();
@@ -256,7 +256,7 @@ export class Player {
     const sec = Bodies.circle(
       last.position.x,
       last.position.y,
-      CONSTANTS.SNAKE_HEAD_RAD,
+      CONSTANTS.SNAKE_HEAD_RAD * this.state.scale,
       {
         isSensor: true,
         force: {
@@ -287,15 +287,9 @@ export class Player {
     this.state.sections.push(new SnakeSection(sec.position.x, sec.position.y));
     this.state.snakeLength++;
 
-    for (
-      let i = this.snakePath.length;
-      i <= this.state.snakeLength * this.state.spacer;
-      i++
-    ) {
-      this.snakePath[i] = new Point(
-        this.snakePath[i - 1].x,
-        this.snakePath[i - 1].y,
-        this.snakePath[i - 1].angle
+    for (let i = 0; i < this.state.spacer; i++) {
+      this.snakePath.push(
+        new Point(last.position.x, last.position.y, last.angle)
       );
     }
   }

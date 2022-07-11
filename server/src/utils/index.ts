@@ -80,8 +80,8 @@ export const CONSTANTS = {
   ROT_LERP: 0.2,
   PREF_DISTANCE: 12,
   DEF_SPEED: 3.5,
-  BOOST_SPEED: 6,
-  MIN_SNAKE_LENGTH: 30,
+  BOOST_SPEED: 5,
+  MIN_SNAKE_LENGTH: 2,
   WALL_WIDTH: 50,
 };
 export function distanceFormula(

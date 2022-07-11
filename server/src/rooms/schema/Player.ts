@@ -50,7 +50,7 @@ export class PlayerState extends Schema {
   nickname: string = '';
 
   @type('int16')
-  spacer: number = 1;
+  spacer: number = 3;
 
   @type('float32')
   x: number;
@@ -83,7 +83,7 @@ export class PlayerState extends Schema {
   endAt: number = 0;
 
   @type('number')
-  scale = 0.2;
+  scale = 0.3;
 
   @type('boolean')
   cooldown = false;

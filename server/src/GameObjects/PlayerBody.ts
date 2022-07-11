@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import Matter, { Bodies, Body, Bounds, Composite, Engine } from 'matter-js';
-import { nanoid } from 'nanoid';
+import { GameSessionResponse } from '../api/types';
 import { Food } from '../rooms/schema/Food';
 import { PlayerState } from '../rooms/schema/Player';
 import { SnakeSection } from '../rooms/schema/SnakeSection';
@@ -29,21 +29,34 @@ export class Player {
   bodyComposite: Composite;
   lastSpeedupTimestamp = 0;
   ejectCallback: Function;
-  snakeSpacer = 3;
+  destroyCallback: Function;
+  killed = false;
+  destroyed = false;
 
-  constructor(engine: Engine, sessionId: string, nickname = '') {
+  constructor(
+    engine: Engine,
+    sessionId: string,
+    nickname = '',
+    gameSession: GameSessionResponse,
+    skin: string,
+    destroyCallback: Function
+  ) {
     this.engine = engine;
     this.sections = new Array();
     this.snakePath = new Array();
+    this.destroyCallback = destroyCallback;
     this.state = new PlayerState({
-      publicAddress: nanoid(4),
+      publicAddress: gameSession.public_address,
       sessionId: sessionId,
       x: _.random(200, GAME_META.width - 400),
       y: _.random(500, GAME_META.height - 200),
-      snakeLength: CONSTANTS.MIN_SNAKE_LENGTH,
-      skin: getRandomArbitrary(0, 3),
+      snakeLength:
+        CONSTANTS.MIN_SNAKE_LENGTH +
+        Math.round(gameSession.tokens_staked / 120000000),
       nickname,
       cooldown: true,
+      playSessionId: gameSession.id,
+      skin,
     });
 
     setTimeout(() => {
@@ -78,6 +91,8 @@ export class Player {
         },
       }
     );
+
+    // TODO - init scale fix
 
     Composite.add(this.engine.world, this.head);
 
@@ -117,7 +132,7 @@ export class Player {
       this.sections[i] = sec;
     }
 
-    for (let i = 0; i <= num * this.snakeSpacer; i++) {
+    for (let i = 0; i <= num * this.state.spacer; i++) {
       this.snakePath[i] = new Point(
         this.head.position.x,
         this.head.position.y,
@@ -157,10 +172,10 @@ export class Player {
     this.snakePath.unshift(part);
 
     for (let i = 1; i <= this.state.snakeLength - 1; i++) {
-      Body.setPosition(this.sections[i], this.snakePath[i * this.snakeSpacer]);
+      Body.setPosition(this.sections[i], this.snakePath[i * this.state.spacer]);
       Body.setAngle(
         this.sections[i],
-        this.snakePath[i * this.snakeSpacer].angle
+        this.snakePath[i * this.state.spacer].angle
       );
     }
 
@@ -180,10 +195,10 @@ export class Player {
     this.state.snakeLength--;
     this.snakePath = this.snakePath.slice(
       0,
-      this.snakePath.length - this.snakeSpacer
+      this.snakePath.length - this.state.spacer
     );
     this.ejectCallback(sec);
-    this.state.tokens--;
+    this.state.tokens > 0 ? this.state.tokens-- : '';
     this.scaleDown();
     if (this.sections.length <= CONSTANTS.MIN_SNAKE_LENGTH) {
       this.stopSpeeding();
@@ -274,7 +289,7 @@ export class Player {
 
     for (
       let i = this.snakePath.length;
-      i <= this.state.snakeLength * this.snakeSpacer;
+      i <= this.state.snakeLength * this.state.spacer;
       i++
     ) {
       this.snakePath[i] = new Point(
@@ -297,15 +312,17 @@ export class Player {
     this.state.isSpeeding = speedUp === true;
   }
 
-  destroy() {
-    this.state.endAt = Date.now();
-    Composite.remove(this.engine.world, this.head);
+  async destroy(killed: boolean = false) {
     console.log('destroy');
+    this.killed = killed;
+    this.destroyed = true;
+    this.state.endAt = Date.now();
+    await this.destroyCallback(this.state);
+    Composite.remove(this.engine.world, this.head);
     this.sections.forEach((s) => {
       Composite.remove(this.engine.world, s);
     });
 
     Composite.remove(this.engine.world, this.bodyComposite, true);
-    this.sections = [];
   }
 }

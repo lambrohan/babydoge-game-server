@@ -1,6 +1,11 @@
 import Arena from '@colyseus/arena';
 import { monitor } from '@colyseus/monitor';
+import axios from 'axios';
 import { RedisPresence } from 'colyseus';
+import { ApiService } from './api';
+(BigInt as any).prototype['toJSON'] = function () {
+  return this.toString();
+};
 
 /**
  * Import your Room files
@@ -20,14 +25,15 @@ export default Arena({
         // driver: new MongooseDriver(MONGOOSE_CONFIG()),  uncomment this if you want to use mongodb instead of redis
       }
     : {},
-  initializeGameServer: (gameServer) => {
+  initializeGameServer: async (gameServer) => {
     /**
      * Define your room handlers:
      */
-    gameServer.define('my_room', MyRoom);
-    if (isProd) {
-      // gameServer.simulateLatency(200);
-    }
+    const apiService = new ApiService();
+    const rooms = await apiService.getRooms();
+    rooms.forEach((r) => {
+      gameServer.define(r.name, MyRoom, r as any);
+    });
   },
 
   initializeExpress: (app) => {

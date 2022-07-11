@@ -1,6 +1,10 @@
+import { MapSchema } from '@colyseus/schema';
+import _ from 'lodash';
 import Matter, { Vector } from 'matter-js';
+import { FoodObjType, FoodType, FoodTypeItems } from '../api/types';
+import { Food } from '../rooms/schema/Food';
 
-export const MAX_CLIENTS_PER_ROOM = 500;
+export const MAX_CLIENTS_PER_ROOM = 50;
 
 export const GAME_META = {
   width: 3000,
@@ -69,7 +73,7 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 12,
+  SNAKE_HEAD_RAD: 50,
   FOOD_RADIUS_MULTIPLIER: 1,
   FOOD_RADIUS: 25,
   LERP: 0.08,
@@ -144,33 +148,46 @@ export function lerp(p0: number, p1: number, t: number) {
   return (p1 - p0) * t + p0;
 }
 
-export enum FoodAssetType {
-  RED = 0,
-  ORANGE = 1,
-  BLUE = 2,
-  COIN = 4,
-  GREEN = 3,
-}
-
-export enum SnakeSkin {
-  GREEN_WHITE_LINE = 0,
-  ELECTRIC_BLUE = 1,
-  PURPLE_WHITE_RING = 2,
-}
-
-export function GetTokensFromFoodType(type: FoodAssetType): number {
+export function GetTokensFromFoodType(type: FoodType): number {
   switch (type) {
-    case FoodAssetType.RED:
+    case FoodType.RED:
       return 1;
-    case FoodAssetType.GREEN:
+    case FoodType.GREEN:
       return 2;
-    case FoodAssetType.ORANGE:
+    case FoodType.ORANGE:
       return 10;
-    case FoodAssetType.BLUE:
+    case FoodType.BLUE:
       return 100;
-    case FoodAssetType.COIN:
+    case FoodType.COIN:
       return 1000;
     default:
       return 0;
   }
+}
+
+export function generateFoodFromTokens(tokens: bigint, foodObj: FoodObjType) {
+  const foodMap = new MapSchema<Food>();
+  const foodTypes = Object.keys(foodObj);
+  while (tokens > BigInt(0)) {
+    const r = _.random(0, foodTypes.length - 1);
+    const key = foodTypes[r] as keyof typeof FoodType;
+    const val = foodObj[key];
+    const valInMils = BigInt(val * Math.pow(10, 6));
+    if (valInMils > tokens) {
+      foodTypes.splice(r, 1);
+      continue;
+    }
+    const f = new Food(
+      _.random(CONSTANTS.WALL_WIDTH, GAME_META.width - CONSTANTS.WALL_WIDTH),
+      _.random(CONSTANTS.WALL_WIDTH, GAME_META.height - CONSTANTS.WALL_WIDTH),
+      1,
+      FoodType[key as keyof typeof FoodType]
+    );
+    f.scale = f.type === FoodType.COIN ? 1 : _.random(0.8, 1);
+    f.tokensInMil = val;
+    foodMap.set(f.id, f);
+    tokens = BigInt(tokens) - valInMils;
+  }
+
+  return foodMap;
 }

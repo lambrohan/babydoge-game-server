@@ -1,5 +1,4 @@
 import { ArraySchema, Schema, type } from '@colyseus/schema';
-import { SnakeSkin } from '../../utils';
 import { SnakeSection } from './SnakeSection';
 export interface PlayerOptions {
   publicAddress: string;
@@ -7,9 +6,10 @@ export interface PlayerOptions {
   y: number;
   sessionId: string;
   snakeLength: number;
-  skin: SnakeSkin;
   nickname?: string;
   cooldown?: boolean;
+  playSessionId: string;
+  skin: string;
 }
 export class PlayerState extends Schema {
   constructor({
@@ -18,9 +18,10 @@ export class PlayerState extends Schema {
     x,
     y,
     snakeLength,
-    skin,
     nickname,
     cooldown = false,
+    playSessionId,
+    skin = 'blue.png',
   }: PlayerOptions) {
     super();
     this.publicAddress = publicAddress;
@@ -29,18 +30,27 @@ export class PlayerState extends Schema {
     this.y = y;
     this.sections = new ArraySchema();
     this.snakeLength = snakeLength;
-    this.skin = skin;
     this.startAt = Date.now();
     this.nickname = nickname || '';
     this.cooldown = cooldown;
+    this.playSessionId = playSessionId;
+    this.skin = skin;
   }
   publicAddress: string;
+
+  playSessionId: string;
+
+  @type('number')
+  rank: number = 0;
 
   @type('string')
   sessionId: string;
 
   @type('string')
   nickname: string = '';
+
+  @type('int16')
+  spacer: number = 1;
 
   @type('float32')
   x: number;
@@ -53,9 +63,6 @@ export class PlayerState extends Schema {
 
   @type('number')
   snakeLength: number = 0;
-
-  @type('int8')
-  skin: SnakeSkin = SnakeSkin.GREEN_WHITE_LINE;
 
   @type([SnakeSection])
   sections: ArraySchema<SnakeSection>;
@@ -76,8 +83,11 @@ export class PlayerState extends Schema {
   endAt: number = 0;
 
   @type('number')
-  scale = 1;
+  scale = 0.2;
 
   @type('boolean')
   cooldown = false;
+
+  @type('string')
+  skin: string = 'blue.png';
 }

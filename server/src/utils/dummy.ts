@@ -1,13 +1,9 @@
 import { Food } from '../rooms/schema/Food';
 import { nanoid } from 'nanoid';
 import { MapSchema } from '@colyseus/schema';
-import {
-  FoodAssetType,
-  GAME_META,
-  getRandomArbitrary,
-  GetTokensFromFoodType,
-} from '.';
+import { GAME_META, getRandomArbitrary, GetTokensFromFoodType } from '.';
 import _ from 'lodash';
+import { FoodType } from '../api/types';
 export function generateDummyFood() {
   const foodGroup: MapSchema<Food> = new MapSchema();
   for (var i = 0; i < 400; i++) {
@@ -17,7 +13,7 @@ export function generateDummyFood() {
       1,
       _.random(4)
     );
-    f.scale = f.type == FoodAssetType.COIN ? 1 : _.random(0.5, 1.0);
+    f.scale = f.type == FoodType.COIN ? 1 : _.random(0.5, 1.0);
     f.tokensInMil = Math.round(GetTokensFromFoodType(f.type) * f.scale);
     foodGroup.set(f.id, f);
   }

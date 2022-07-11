@@ -1,5 +1,6 @@
 import { MapSchema, Reflection } from '@colyseus/schema';
-import { Room, Client, Delayed } from 'colyseus';
+import { Room, Client, Delayed, ServerError } from 'colyseus';
+import { Request } from 'express';
 import _ from 'lodash';
 import Matter, {
   Engine,
@@ -18,13 +19,11 @@ import {
   COLLISION_CATEGORIES,
   COLLISION_GROUPS,
   CONSTANTS,
-  degToRad,
-  FoodAssetType,
   GAME_META,
+  generateFoodFromTokens,
   getIDFromLabel,
   getRandomArbitrary,
   GetTokensFromFoodType,
-  identifyGameObject,
   IsFoodBody,
   IsSnakeBody,
   IsSnakeHead,
@@ -35,6 +34,19 @@ import { generateDummyFood } from '../utils/dummy';
 import { Food } from './schema/Food';
 import { MyRoomState } from './schema/MyRoomState';
 import { SnakeSection } from './schema/SnakeSection';
+import * as Web3Token from 'web3-token';
+import { ApiService } from '../api';
+import {
+  FoodObjType,
+  FoodType,
+  FoodTypeItems,
+  GameSessionResponse,
+  JoinOptions,
+  RoomInstance,
+  RoomResponse,
+} from '../api/types';
+import { PlayerState } from './schema/Player';
+import moment from 'moment';
 const TICK_RATE = 1000 / 60; // 20 ticks per second
 
 export class MyRoom extends Room<MyRoomState> {
@@ -43,8 +55,30 @@ export class MyRoom extends Room<MyRoomState> {
   engine: Matter.Engine;
   players: Map<string, Player> = new Map();
   foodBodies: Map<string, Body> = new Map();
-  onCreate() {
+  apiService: ApiService;
+  sortedPlayers: string[] = [];
+  sortInterval: NodeJS.Timer;
+  roomData: RoomResponse;
+  foodTypeItems: FoodTypeItems[] = [];
+  apiRoomInstance: RoomInstance;
+  foodEnumObj: FoodObjType = {};
+
+  async onCreate(roomData: RoomResponse) {
     console.log('room created');
+    this.apiService = new ApiService();
+
+    this.roomData = roomData;
+    this.foodTypeItems = await this.apiService.getFoodTypes();
+    this.foodTypeItems.forEach((f) => {
+      this.foodEnumObj[f.type] = f.value;
+    });
+    this.apiRoomInstance = await this.apiService.createRoomInstance(
+      roomData.id,
+      this.roomId
+    );
+    this.sortInterval = setInterval(() => {
+      this.refreshRank();
+    }, 2000);
     this.engine = Engine.create({
       gravity: { x: 0, y: 0 },
     });
@@ -57,14 +91,16 @@ export class MyRoom extends Room<MyRoomState> {
       },
     };
 
-    this.createWalls();
-
     const roomState = new MyRoomState();
     this.setState(roomState);
 
-    generateDummyFood().forEach((f) => {
+    generateFoodFromTokens(
+      this.apiRoomInstance.tokens,
+      this.foodEnumObj
+    ).forEach((f) => {
       this.addFoodToWorld(f);
     });
+
     let elapsedTime = 0;
     this.setSimulationInterval((delta) => {
       elapsedTime += delta;
@@ -80,13 +116,8 @@ export class MyRoom extends Room<MyRoomState> {
     this.onMessage('speed', (client, speedUp: boolean) => {
       this.players.get(client.sessionId)?.toggleSpeed(speedUp, (sec: Body) => {
         if (!sec) return;
-        const f = new Food(
-          sec.position.x,
-          sec.position.y,
-          1,
-          FoodAssetType.RED
-        );
-        f.tokensInMil = GetTokensFromFoodType(f.type);
+        const f = new Food(sec.position.x, sec.position.y, 1, FoodType.RED);
+        f.tokensInMil = this.foodEnumObj.RED;
         this.addFoodToWorld(f);
         Composite.remove(this.engine.world, sec);
       });
@@ -95,6 +126,29 @@ export class MyRoom extends Room<MyRoomState> {
     Matter.Events.on(this.engine, 'collisionStart', async (event) => {
       await this.handleCollision(event);
     });
+  }
+
+  async onAuth(client: Client, options: JoinOptions, request: Request) {
+    try {
+      const jwt = options.accessToken;
+      const userData = await Web3Token.verify(jwt);
+      const session = await this.apiService.initSession(
+        userData.address,
+        this.roomData.name,
+        options.stakeAmtUsd,
+        options?.nickname || ''
+      );
+      session.public_address = userData.address;
+      if (!session) throw new ServerError(400, 'unable to create session');
+
+      return session;
+    } catch (error: any) {
+      if (error.response) {
+        throw new ServerError(400, error.response.data.message);
+        return;
+      }
+      throw new ServerError(400, error.message);
+    }
   }
 
   async handleCollision(event: IEventCollision<Matter.Engine>) {
@@ -117,28 +171,74 @@ export class MyRoom extends Room<MyRoomState> {
     }
   }
 
-  onJoin(client: Client, options: any) {
+  onJoin(client: Client, options: any, auth: GameSessionResponse) {
     console.log(client.sessionId, 'joined!');
-    const player = new Player(this.engine, client.sessionId, options?.nickname);
+    const player = new Player(
+      this.engine,
+      client.sessionId,
+      options?.nickname,
+      auth,
+      options.skin,
+      async (state: PlayerState) => {
+        client.send('gameover', state.playSessionId);
+        client.leave();
+      }
+    );
     this.players.set(client.sessionId, player);
     this.state.players.set(client.sessionId, player.state);
   }
 
-  onLeave(client: Client, consented: boolean) {
+  async onLeave(client: Client, consented: boolean) {
     console.log(client.sessionId, 'left!');
-    if (this.players.has(client.sessionId)) {
-      this.players.get(client.sessionId).destroy();
+    const player = this.players.get(client.sessionId);
+    if (!player) return;
+    const won = this.isWinning(player.state);
+    await this.apiService
+      .endSession(
+        player.state.playSessionId,
+        player.state.kills,
+        player.state.tokens,
+        won,
+        player.state.rank,
+        player.state.snakeLength
+      )
+      .catch((e) => {
+        console.log(e.response.data);
+      });
+    const tokens = player.state.tokens;
+    const sections = player.sections.map(
+      (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
+    );
+
+    if (!won) {
+      if (player.killed) {
+        this.dropFoodAtSections(sections, BigInt(tokens * Math.pow(10, 6)));
+      } else {
+        this.dropFoodRandomly(BigInt(tokens * Math.pow(10, 6)));
+      }
     }
+    if (!player.destroyed) player.destroy();
 
     this.players.delete(client.sessionId);
     this.state.players.delete(client.sessionId);
   }
 
-  onDispose() {
+  async onDispose() {
     console.log('room', this.roomId, 'disposing...');
+    let tokensToRestore = BigInt(0);
+    this.state.foodItems.forEach((f) => {
+      tokensToRestore =
+        BigInt(tokensToRestore) + BigInt(f.tokensInMil * Math.pow(10, 6));
+    });
+    await this.apiService
+      .desposeRoomInstance(this.roomId, tokensToRestore)
+      .catch((e) => {
+        console.log(e.response.data.message);
+      });
     Engine.clear(this.engine);
     this.players = new MapSchema();
     this.foodBodies = new MapSchema();
+    clearInterval(this.sortInterval);
     console.log('room', this.roomId, 'disposed');
   }
 
@@ -154,15 +254,7 @@ export class MyRoom extends Room<MyRoomState> {
           if (process.env.NODE_ENV === 'loadtest') {
             player.rotateTowards(GAME_META.width / 2, GAME_META.height / 2);
           } else {
-            const sections = player.sections.map(
-              (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
-            );
-
-            player.destroy();
-            this.state.players.delete(player.state.sessionId);
-            this.players.delete(player.state.sessionId);
-            // uncomment the line below to drop food when snake dies at boundary
-            // this.dropFood(sections);
+            player.destroy(true);
           }
         }
       }
@@ -217,15 +309,8 @@ export class MyRoom extends Room<MyRoomState> {
     // generate food items to be dropped
     const player = this.players.get(headPlayerId);
     if (player.state.cooldown) return;
-    const sections = player.sections.map(
-      (s) => ({ x: s.position.x, y: s.position.y } as SnakeSection)
-    );
-
-    this.players.get(headPlayerId).destroy();
+    this.players.get(headPlayerId).destroy(true);
     this.state.players.get(bodyPlayerId).kills++;
-    this.state.players.delete(headPlayerId);
-    this.players.delete(headPlayerId);
-    // this.dropFood(sections);
   }
 
   /**
@@ -329,20 +414,56 @@ export class MyRoom extends Room<MyRoomState> {
     );
   }
 
-  dropFood(sections: SnakeSection[]) {
-    for (let i = 1; i < sections.length; i++) {
-      const sec = sections[i];
-      const x =
-        sec.x +
-        getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
-      const y =
-        sec.y +
-        getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
-      const f = new Food(x, y, 1, _.random(4));
-      f.scale = f.type == FoodAssetType.COIN ? 1 : _.random(0.5, 1.0);
-      f.tokensInMil = Math.round(GetTokensFromFoodType(f.type) * f.scale);
-
+  dropFoodRandomly(tokens: bigint) {
+    const food = generateFoodFromTokens(tokens, this.foodEnumObj);
+    food.forEach((f) => {
       this.addFoodToWorld(f);
+    });
+  }
+
+  dropFoodAtSections(sections: SnakeSection[], tokens: bigint) {
+    const food = generateFoodFromTokens(tokens, this.foodEnumObj);
+    while (food.size > 0) {
+      for (let i = 1; i < sections.length; i++) {
+        const sec = sections[i];
+        const x =
+          sec.x +
+          getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
+        const y =
+          sec.y +
+          getRandomArbitrary(3, 10) * Math.sign(getRandomArbitrary(-1, 1));
+
+        if (!food.size) return;
+
+        const key = food.keys().next().value;
+        const f = food.get(key);
+        f.x = x;
+        f.y = y;
+        this.addFoodToWorld(f);
+        food.delete(key);
+      }
     }
+  }
+
+  isWinning(state: PlayerState): boolean {
+    return state.kills >= 3 && moment().diff(state.startAt, 'minutes') > 10;
+  }
+
+  refreshRank() {
+    let maxScore = 0;
+    const pls: string[] = [];
+    this.state.players.forEach((p) => {
+      if (p.tokens > maxScore) {
+        pls.unshift(p.sessionId);
+        maxScore = p.tokens;
+      } else {
+        pls.push(p.sessionId);
+      }
+    });
+
+    this.sortedPlayers = pls;
+    this.sortedPlayers.forEach((id, i) => {
+      this.state.players.get(id).rank = i + 1;
+    });
   }
 }

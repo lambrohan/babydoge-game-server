@@ -308,6 +308,7 @@ export class Player {
 
   async destroy(killed: boolean = false) {
     console.log('destroy');
+    if (this.destroyed) return;
     this.killed = killed;
     this.destroyed = true;
     this.state.endAt = Date.now();

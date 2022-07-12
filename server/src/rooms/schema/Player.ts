@@ -83,7 +83,7 @@ export class PlayerState extends Schema {
   endAt: number = 0;
 
   @type('number')
-  scale = 0.3;
+  scale = 0.8;
 
   @type('boolean')
   cooldown = false;

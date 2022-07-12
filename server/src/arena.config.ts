@@ -19,6 +19,8 @@ export default Arena({
      */
     const apiService = new ApiService();
     const rooms = await apiService.getRooms();
+    console.log('ROOMS _', rooms.length);
+
     rooms.forEach((r) => {
       gameServer.define(r.name, MyRoom, r as any);
     });

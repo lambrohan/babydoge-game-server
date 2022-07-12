@@ -73,7 +73,7 @@ export function getIDFromLabel(label: string) {
 }
 
 export const CONSTANTS = {
-  SNAKE_HEAD_RAD: 50,
+  SNAKE_HEAD_RAD: 25,
   FOOD_RADIUS_MULTIPLIER: 1,
   FOOD_RADIUS: 25,
   LERP: 0.08,
@@ -81,7 +81,7 @@ export const CONSTANTS = {
   PREF_DISTANCE: 12,
   DEF_SPEED: 3.5,
   BOOST_SPEED: 5,
-  MIN_SNAKE_LENGTH: 2,
+  MIN_SNAKE_LENGTH: 10,
   WALL_WIDTH: 50,
 };
 export function distanceFormula(

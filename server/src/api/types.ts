@@ -22,6 +22,7 @@ export interface UserResponse {
   id: string;
   public_address: string;
   wallet?: WalletResponse;
+  is_admin: boolean;
 }
 
 export interface GameSessionResponse {

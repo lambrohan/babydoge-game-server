@@ -1,11 +1,11 @@
 import Arena from '@colyseus/arena';
 import { monitor } from '@colyseus/monitor';
-import axios from 'axios';
-import { RedisPresence } from 'colyseus';
 import { ApiService } from './api';
+import { adminAuthMiddleware } from './api/middleware';
 (BigInt as any).prototype['toJSON'] = function () {
   return this.toString();
 };
+const apiService = new ApiService();
 
 /**
  * Import your Room files
@@ -17,7 +17,7 @@ export default Arena({
     /**
      * Define your room handlers:
      */
-    const apiService = new ApiService();
+
     const rooms = await apiService.getRooms();
     console.log('ROOMS _', rooms.length);
 
@@ -39,7 +39,20 @@ export default Arena({
      * It is recommended to protect this route with a password.
      * Read more: https://docs.colyseus.io/tools/monitor/
      */
-    app.use('/colyseus', monitor());
+    app.use(
+      '/colyseus/:token',
+      adminAuthMiddleware,
+      monitor({
+        columns: [
+          'roomId',
+          'name',
+          'clients',
+          { metadata: 'tokens' },
+          'maxClients',
+          'elapsedTime',
+        ],
+      })
+    );
   },
 
   beforeListen: () => {

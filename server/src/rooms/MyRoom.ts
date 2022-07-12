@@ -65,6 +65,9 @@ export class MyRoom extends Room<MyRoomState> {
 
   async onCreate(roomData: RoomResponse) {
     console.log('room created');
+    this.setMetadata({
+      tokens: 0,
+    });
     this.apiService = new ApiService();
 
     this.roomData = roomData;
@@ -282,6 +285,7 @@ export class MyRoom extends Room<MyRoomState> {
     const foodId = getIDFromLabel(foodBody.label);
     const playerId = getIDFromLabel(snakeBody.label);
     const food = this.state.foodItems.get(foodId);
+    this.metadata.tokens -= food.tokensInMil;
     const player = this.state.players.get(playerId);
     this.players.get(player.sessionId).eatFood(food);
     this.state.foodItems.delete(foodId);
@@ -318,6 +322,7 @@ export class MyRoom extends Room<MyRoomState> {
    * @param f foodItem
    */
   addFoodToWorld(f: Food) {
+    this.metadata.tokens += f.tokensInMil;
     const fBody = Bodies.circle(f.x, f.y, CONSTANTS.FOOD_RADIUS, {
       position: {
         x: f.x,

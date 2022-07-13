@@ -451,7 +451,7 @@ export class MyRoom extends Room<MyRoomState> {
   }
 
   isWinning(state: PlayerState): boolean {
-    return state.kills >= 3 && moment().diff(state.startAt, 'minutes') > 10;
+    return state.kills >= 3 && moment().diff(state.startAt, 'minutes') >= 10;
   }
 
   refreshRank() {

@@ -135,6 +135,11 @@ export class Player {
 
       Composite.add(this.bodyComposite, sec);
       this.sections.push(sec);
+      if (i > 0) {
+        this.state.sections.push(
+          new SnakeSection(sec.position.x, sec.position.y)
+        );
+      }
     }
 
     for (let i = 0; i < num * this.state.spacer; i++) {
@@ -197,6 +202,7 @@ export class Player {
     for (let i = 0; i < this.state.spacer; i++) {
       this.snakePath.pop();
     }
+    Composite.remove(this.engine.world, sec, true);
     this.ejectCallback(sec);
     this.state.tokens > 0 ? this.state.tokens-- : '';
     this.scaleDown();

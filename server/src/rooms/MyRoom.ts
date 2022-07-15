@@ -122,7 +122,7 @@ export class MyRoom extends Room<MyRoomState> {
         const f = new Food(sec.position.x, sec.position.y, 1, FoodType.RED);
         f.tokensInMil = this.foodEnumObj.RED;
         this.addFoodToWorld(f);
-        Composite.remove(this.engine.world, sec);
+        // Composite.remove(this.engine.world, sec, true);
       });
     });
 
@@ -300,9 +300,9 @@ export class MyRoom extends Room<MyRoomState> {
    */
 
   handleP2PCollision(pair: IPair) {
-    if (process.env.NODE_ENV === 'loadtest') {
-      return;
-    }
+    // if (process.env.NODE_ENV === 'loadtest') {
+    //   return;
+    // }
     const snakeHead = IsSnakeHead(pair.bodyA) ? pair.bodyA : pair.bodyB;
     const snakeBody = IsSnakeBody(pair.bodyA) ? pair.bodyA : pair.bodyB;
     // destory player with snake haead

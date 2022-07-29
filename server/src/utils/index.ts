@@ -7,8 +7,8 @@ import { Food } from '../rooms/schema/Food';
 export const MAX_CLIENTS_PER_ROOM = 50;
 
 export const GAME_META = {
-  width: 3000,
-  height: 3000,
+  width: 12000,
+  height: 12000,
 };
 
 export function getRandomArbitrary(min: number, max: number) {

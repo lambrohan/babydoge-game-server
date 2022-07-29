@@ -23,7 +23,6 @@ import {
   generateFoodFromTokens,
   getIDFromLabel,
   getRandomArbitrary,
-  GetTokensFromFoodType,
   IsFoodBody,
   IsSnakeBody,
   IsSnakeHead,
@@ -451,7 +450,11 @@ export class MyRoom extends Room<MyRoomState> {
   }
 
   isWinning(state: PlayerState): boolean {
-    return state.kills >= 3 && moment().diff(state.startAt, 'minutes') >= 10;
+    return (
+      state.kills >= this.roomData.min_kills_to_win &&
+      moment().diff(state.startAt, 'minutes') >=
+        this.roomData.min_minutes_to_win
+    );
   }
 
   refreshRank() {

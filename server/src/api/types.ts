@@ -10,6 +10,8 @@ export interface RoomResponse {
   max_players: number;
   tokens: bigint;
   tokens_per_instance: bigint;
+  min_minutes_to_win: number;
+  min_kills_to_win: number;
 }
 
 export interface WalletResponse {
